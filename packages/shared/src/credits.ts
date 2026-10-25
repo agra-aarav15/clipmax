@@ -82,7 +82,6 @@ export const PLAN_CATALOG: Record<OfferedPlanTier, PlanDefinition> = {
     price: { usdCents: 0, inrPaise: 0 },
     razorpayPlanEnvVar: null,
     features: [
-      "30 credits to start",
       "1 credit per minute of source video",
       "Up to 15 minutes per source",
       "9:16 exports with burned-in captions",
@@ -96,7 +95,6 @@ export const PLAN_CATALOG: Record<OfferedPlanTier, PlanDefinition> = {
     price: { usdCents: 1900, inrPaise: 149_900 },
     razorpayPlanEnvVar: "RAZORPAY_PLAN_STARTER_MONTHLY",
     features: [
-      "150 credits every month",
       "1 credit per minute of source video",
       "Up to 15 minutes per source",
       "Same 9:16 pipeline, five times the headroom",

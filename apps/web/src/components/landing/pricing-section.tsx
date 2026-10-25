@@ -173,7 +173,7 @@ export function PricingSection() {
                         ? checkoutConfigured
                           ? "Upgrade inside the studio"
                           : "Checkout opens at launch"
-                        : "30 credits on signup"}
+                        : "Email or Google sign-in"}
                     </p>
                   </div>
                 </div>

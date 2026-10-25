@@ -4,7 +4,7 @@ import { GeistSans } from "geist/font/sans";
 import { Instrument_Serif } from "next/font/google";
 import type { ReactNode } from "react";
 
-import { PreviewBadge } from "../components/preview-badge";
+import { PreviewBar } from "../components/preview-bar";
 
 import "./globals.css";
 
@@ -50,8 +50,8 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       className={`${GeistSans.variable} ${GeistMono.variable} ${instrumentSerif.variable} dark`}
     >
       <body className="min-h-dvh overflow-x-clip bg-background font-sans text-foreground">
+        <PreviewBar />
         {children}
-        <PreviewBadge />
       </body>
     </html>
   );
