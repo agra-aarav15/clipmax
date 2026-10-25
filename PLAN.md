@@ -1,4 +1,8 @@
-# ClipMax — 15-Day Launch Plan
+# ClipMax — 15-Day Launch Plan (historical)
+
+> **Superseded on 25 October 2026 by [CLIPMAX.md](CLIPMAX.md).** This day-by-day plan was written
+> before the vertical slice existed and now describes work that is already built. Keep it as a
+> record of the original sequencing; execute from CLIPMAX.md §6 instead.
 
 **Window:** Fri 23 Oct 2026 → Fri 6 Nov 2026
 **Repo:** `F:\ClipMax`

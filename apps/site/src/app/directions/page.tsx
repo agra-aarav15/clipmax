@@ -118,7 +118,7 @@ function Direction({
           </div>
         </div>
 
-        <div>
+        <div className="lg:sticky lg:top-24 lg:self-start">
           {artboard}
           <p className="mt-3 flex items-center gap-2 font-mono text-[8px] tracking-[0.14em] text-zinc-600 uppercase">
             <CornerDownRightIcon className="size-3" aria-hidden="true" />
@@ -319,14 +319,14 @@ function Signal() {
 
 /* 03 — Paper Edit -------------------------------------------------- */
 
-function ContactTile({ tone, caption }: { tone: string; caption: string }) {
+function ContactTile({ tone, caption, quote }: { tone: string; caption: string; quote: string }) {
   return (
     <div>
       <div className={`relative aspect-[3/4] overflow-hidden border border-[#1A1714]/20 ${tone}`}>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_25%,rgba(255,255,255,0.32),transparent_65%)]" />
         <div className="absolute inset-x-2 bottom-2">
           <span className="font-serif text-[10px] leading-[1.15] text-[#1A1714] italic">
-            “the part nobody clips”
+            “{quote}”
           </span>
         </div>
         <span className="absolute top-1.5 left-1.5 border border-[#1A1714]/30 px-1 font-mono text-[6px] tracking-[0.1em] text-[#1A1714] uppercase">
@@ -388,9 +388,21 @@ function PaperEdit() {
 
         <div>
           <div className="grid grid-cols-3 gap-2">
-            <ContactTile tone="bg-[#CDBFA9]" caption="01 · Hook" />
-            <ContactTile tone="bg-[#B7A791]" caption="02 · Turn" />
-            <ContactTile tone="bg-[#9C8B75]" caption="03 · Payoff" />
+            <ContactTile
+              tone="bg-[#CDBFA9]"
+              caption="01 · Hook"
+              quote="nobody tells you the first year is quiet"
+            />
+            <ContactTile
+              tone="bg-[#B7A791]"
+              caption="02 · Turn"
+              quote="I almost quit in month nine"
+            />
+            <ContactTile
+              tone="bg-[#9C8B75]"
+              caption="03 · Payoff"
+              quote="then one clip changed the year"
+            />
           </div>
           <div className="mt-3 border-t border-[#141210]/20 pt-2">
             <p className="font-serif text-[13px] leading-snug italic">
@@ -582,13 +594,13 @@ function HookMachine() {
       </div>
 
       <div className="relative mt-6 flex items-center justify-center">
-        <div className="relative w-full max-w-[330px]">
+        <div className="relative w-full max-w-[360px]">
           <span className="absolute -top-2 -left-2 size-3 border-t border-l border-white/20" />
           <span className="absolute -top-2 -right-2 size-3 border-t border-r border-white/20" />
           <span className="absolute -bottom-2 -left-2 size-3 border-b border-l border-white/20" />
           <span className="absolute -right-2 -bottom-2 size-3 border-r border-b border-white/20" />
 
-          <p className="text-center text-[clamp(1.8rem,4.4vw,2.9rem)] leading-[0.9] font-bold tracking-[-0.045em] uppercase">
+          <p className="text-center text-[clamp(1.55rem,3.6vw,2.25rem)] leading-[0.92] font-bold tracking-[-0.045em] uppercase">
             Nobody tells you
             <br />
             the first year is

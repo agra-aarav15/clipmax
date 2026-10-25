@@ -1,5 +1,11 @@
 # ClipMax — Design System
 
+> **Decision pending (25 October 2026).** Six complete directions are presented at
+> `https://aarav.runs-on.dev/clipmax/directions/` and in [CLIPMAX.md](CLIPMAX.md) §2. The cobalt +
+> ice system documented below is the current implementation, not the final choice. If a new
+> direction is picked, this file is rewritten before any component is rebuilt. Do not start a
+> landing-page redesign against this palette until that decision is recorded.
+
 > The design reference for every ClipMax surface. Read this before changing the landing page,
 > signup, dashboard, or email. The product truth lives in `PRODUCT.md`; this file is how it looks,
 > moves, and speaks.

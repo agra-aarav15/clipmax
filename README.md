@@ -2,6 +2,9 @@
 
 AI video repurposing SaaS. Long-form horizontal video in, vertical 9:16 captioned clips out.
 
+**Start here:** [CLIPMAX.md](CLIPMAX.md) is the master plan and continuation file. It records what is
+built, what is proven, what is blocked, and the exact next task. Read it before changing anything.
+
 This repository is the production monorepo: a Next.js web app, Supabase schema and RLS, Cloudflare R2
 direct uploads, and a native Python/FFmpeg worker. The web app runs on Node via pnpm. The worker runs
 in a `uv` virtual environment and calls the system FFmpeg binary. Local development connects straight
@@ -10,6 +13,8 @@ to hosted Supabase and R2, so both services run natively on the developer's mach
 ## Live design preview
 
 [Open the static design preview](https://aarav.runs-on.dev/clipmax/) (source: [apps/site](apps/site)).
+The six landing-page directions under consideration are at
+[the direction board](https://aarav.runs-on.dev/clipmax/directions/).
 
 GitHub Pages serves the real landing page from `apps/site` under `/clipmax`. This is a design
 preview, not the working studio: sign-in, uploads, processing, and billing live in the full Next.js
@@ -38,7 +43,7 @@ server-side rate limits, and a monthly free-plan renewal.
 Verified locally without hosted credentials:
 
 - `pnpm --filter @clipmax/web typecheck`, `lint`, and a production `build` pass.
-- Worker `pytest` (11 tests), `ruff`, and `mypy --strict` pass.
+- Worker `pytest` (26 tests), `ruff`, and `mypy --strict` pass.
 - A synthetic source renders through the real FFmpeg path: 1080×1920, H.264/AAC, burned ASS
   captions with word-level highlight, verified by ffprobe.
 - Razorpay webhook and checkout HMAC verification pass positive and tamper-negative tests.
