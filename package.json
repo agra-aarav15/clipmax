@@ -1,0 +1,31 @@
+{
+  "name": "clipmax",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.13.1",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev --filter=@clipmax/web",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test:worker": "python -m uv run --directory apps/worker pytest",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,css,yaml,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,md,css,yaml,yml}\"",
+    "db:link": "supabase link",
+    "db:push": "supabase db push",
+    "db:types": "supabase gen types typescript --linked --schema public > packages/shared/src/database.ts",
+    "db:verify": "node scripts/verify-sql.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.11",
+    "eslint": "10.13.0",
+    "eslint-config-next": "16.4.2",
+    "prettier": "3.9.10",
+    "prettier-plugin-tailwindcss": "0.8.1",
+    "turbo": "2.11.10",
+    "typescript": "6.0.3"
+  }
+}

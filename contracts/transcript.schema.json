@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clipmax.app/contracts/transcript.schema.json",
+  "title": "ClipMax Transcript",
+  "description": "Word-level transcript produced by the worker and stored in public.transcripts. All times are seconds from the start of the source video.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["language", "duration_seconds", "words"],
+  "properties": {
+    "language": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 16,
+      "description": "BCP-47 language tag, e.g. en or hi."
+    },
+    "duration_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "provider": {
+      "type": "string",
+      "enum": ["openai", "groq", "local"]
+    },
+    "model": {
+      "type": "string"
+    },
+    "words": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/word" }
+    }
+  },
+  "$defs": {
+    "word": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["word", "start", "end"],
+      "properties": {
+        "word": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start": {
+          "type": "number",
+          "minimum": 0
+        },
+        "end": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,63 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+.next/
+out/
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+
+# environment
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# supabase CLI state
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+
+# media + scratch
+*.mp4
+*.mov
+*.webm
+*.wav
+*.ass
+!apps/worker/tests/fixtures/*
+.artifacts/
+.secrets/
+cookies.txt
+
+# tooling
+coverage/
+playwright-report/
+test-results/
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Local scratch (test harnesses, temp output)
+.tmp/
+
+# Local-only tooling and reference material (not part of the deployable app)
+.freebuff/
+.opencode/
+ClipMax Startup Blueprint.pdf
+ClipMax-competitor-UI-reference-pack.zip
+Drisaj demands/

@@ -1,0 +1,9 @@
+node_modules
+.next
+.turbo
+.venv
+coverage
+dist
+pnpm-lock.yaml
+uv.lock
+apps/web/next-env.d.ts

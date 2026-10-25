@@ -1,0 +1,7 @@
+node_modules
+.next
+.turbo
+pnpm-lock.yaml
+uv.lock
+apps/worker/.venv
+supabase/.temp
