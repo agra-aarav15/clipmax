@@ -78,9 +78,21 @@ page, borrow kinetic captions for the hero only, and shift the palette to warm b
 sodium amber, with ice for data and focus. Cobalt is retired as the brand colour if this is chosen;
 that is a recorded decision, not a tweak.
 
-**Status:** awaiting the founder's pick. Until it is picked, **do not rebuild the landing page**.
-Everything else (credentials, worker proof, hardening) can proceed in parallel. If no pick is made
-by the start of the design workstream, Reel One is the default.
+**Test them, do not imagine them.** Four of the six now exist as complete, responsive landing pages
+in the design lab (static, real copy, real pricing, no mock product flows):
+
+- `https://aarav.runs-on.dev/clipmax/lab/cutting-room/`
+- `https://aarav.runs-on.dev/clipmax/lab/paper-edit/`
+- `https://aarav.runs-on.dev/clipmax/lab/hook-machine/`
+- `https://aarav.runs-on.dev/clipmax/lab/gallery/`
+
+Open each at 1440 and 390, scroll the whole page, and pick the one that moves you. The board at
+`/directions` remains the reference sheet for all six.
+
+**Status:** awaiting the founder's pick. Until it is picked, **do not rebuild the product's landing
+page**; the lab pages are the test surface. Everything else (credentials, worker proof, hardening)
+can proceed in parallel. If no pick is made by the start of the design workstream, Reel One is the
+default.
 
 When a direction is picked, update: this section, `DESIGN.md` (palette, type, motion, component
 rules), `apps/web/src/app/globals.css` (tokens), and the decision log in §10. One direction only.
@@ -96,6 +108,7 @@ Do not blend three.
 | ------------------- | -------------------------------------------- | -------------------------------------------------------------------------- |
 | Design preview      | `https://aarav.runs-on.dev/clipmax/`         | Static GitHub Pages build of the real landing page from `apps/site`        |
 | Direction board     | `https://aarav.runs-on.dev/clipmax/directions/` | The six references in §2                                                |
+| Design lab          | `https://aarav.runs-on.dev/clipmax/lab/`      | Four complete landing pages to test and feel                            |
 | Repository          | `https://github.com/agra-aarav15/clipmax`    | Public, `main`, GitHub Actions CI + Pages                                  |
 | Full product        | not deployed                                 | Needs hosted credentials and a Node host; Pages cannot run it              |
 
@@ -422,12 +435,13 @@ Add a row here every time a hosted claim becomes true. A claim without a row is 
 | 25 Oct 26  | Published the real landing page and a six-direction design board to GitHub Pages.                |
 | 25 Oct 26  | Replaced the 15-day build plan with this proof-first plan; `PLAN.md` kept as history.            |
 | 25 Oct 26  | Design direction **pending**. Reel One (Cutting Room × Hook Machine) recommended as default.     |
+| 25 Oct 26  | Published four full landing concepts in `/lab` (Cutting Room, Paper Edit, Hook Machine, Gallery). |
 
 ---
 
 ## 12. Immediate next actions (in order)
 
-1. **Founder:** open the direction board, pick one name, and say it. (Default: Reel One.)
+1. **Founder:** walk the four pages in `/lab`, pick one name, and say it. (Default: Reel One.)
 2. **Founder:** create the Supabase project and R2 bucket, then put the keys in the two env files.
 3. **Agent:** run Track A A2–A8 the moment the env files exist; record evidence in §8.
 4. **Agent:** when the direction is named, execute B1–B10 without waiting for Track A to finish.

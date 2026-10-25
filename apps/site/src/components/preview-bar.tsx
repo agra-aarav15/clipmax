@@ -28,6 +28,13 @@ export function PreviewBar() {
             Directions
           </Link>
           <span className="h-3 w-px bg-white/10" aria-hidden="true" />
+          <Link
+            href="/lab"
+            className="inline-flex items-center gap-1 text-zinc-400 transition-colors hover:text-signal"
+          >
+            Lab
+          </Link>
+          <span className="h-3 w-px bg-white/10" aria-hidden="true" />
           <a
             href={REPO_URL}
             target="_blank"
