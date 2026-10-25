@@ -23,7 +23,7 @@ export function PreviewPage({
   description: string;
 }) {
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-hidden">
+    <div className="relative flex min-h-[calc(100dvh-33px)] flex-col overflow-hidden">
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_78%_0%,rgba(0,71,171,0.22),transparent_65%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_40%_at_10%_60%,rgba(0,71,171,0.18),transparent_68%)]" />
