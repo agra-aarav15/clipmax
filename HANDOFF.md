@@ -36,9 +36,19 @@ Long-form horizontal video in, vertical 9:16 captioned clips out.
 6. Keep the current visual world: cinematic editorial, warm-black, film grain, masked dot field,
    oversized type, Instrument Serif italic emphasis, monospace timecodes.
 7. Respect `prefers-reduced-motion`; keyboard focus; WCAG AA contrast.
-8. Do not delete or overwrite uncommitted work. The repo has no commits yet; everything is local.
+8. Do not delete or overwrite another agent's work. The repository is committed and pushed to
+   `origin/main`; run `git status` before editing and do not rewrite published history.
 
-## Current state (24 Oct 2026)
+## Current state (25 Oct 2026)
+
+### Repository and public preview
+
+- Public repository: `https://github.com/agra-aarav15/clipmax` (branch `main`).
+- Static design preview: `https://aarav.runs-on.dev/clipmax/`. It is the real landing page from
+  `apps/site`, built with GitHub Pages under `/clipmax`. `/signup` and `/dashboard` on that host
+  explain the preview boundary instead of faking the studio.
+- The full app still runs only on Node with hosted credentials. GitHub Pages cannot serve API
+  routes, `/auth/callback`, the worker, or webhooks.
 
 ### Implemented in code
 
@@ -76,6 +86,9 @@ Long-form horizontal video in, vertical 9:16 captioned clips out.
 - `/api/health` returns 503 `ready:false` without credentials and 200 only when Supabase and R2 are
   configured. The cron route rejects a missing secret (503) and the limiter fails open with a log
   when its migration is absent.
+- GitHub Pages serves the real landing at 1440 and 390 px with no horizontal overflow, no console
+  errors, and no failed requests. The static `/signup` and `/dashboard` routes are honest
+  preview-boundary pages, not mock product screens.
 
 ### Not verified / not built
 

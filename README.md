@@ -33,7 +33,7 @@ configuration state, never a fake success. The studio now has real project rows,
 playback, transcript disclosure, downloads, retry, delete, credit ledger, Razorpay checkout,
 server-side rate limits, and a monthly free-plan renewal.
 
-### Verification status (24 Oct 2026)
+### Verification status (25 Oct 2026)
 
 Verified locally without hosted credentials:
 
@@ -48,6 +48,9 @@ Verified locally without hosted credentials:
 - `/api/health` reports real readiness: 503 with `ready: false` when Supabase/R2 are missing, 200
   only when the core integrations are configured. `/api/cron/renew-free-credits` rejects missing or
   wrong `CRON_SECRET` values.
+- The GitHub Pages build serves the real landing at 1440 and 390 px with no horizontal overflow,
+  console errors, or failed requests. `/signup` and `/dashboard` there are preview-boundary pages,
+  not mock product screens.
 
 Not verified in this checkout because no `.env` credentials exist: hosted Supabase auth, a real
 R2 upload/signing round trip, real transcription, Razorpay test checkout/webhook delivery, and
@@ -169,8 +172,9 @@ exist in the build environment.
 
 - **Credits:** 1 credit = 1 minute of source video. Free = 30 credits/month. Starter = 150
   credits/month at $19 / ₹1,499 via Razorpay.
-- **Sources:** direct upload only (`.mp4`, `.mov`, `.webm`), max 500 MB and 15 minutes. YouTube
-  ingestion is deferred to v1.1.
+- **Sources:** direct upload (`.mp4`, `.mov`, `.webm`; max 500 MB and 15 minutes) or a supported
+  public link through yt-dlp. Private or unsupported links fail with an honest error instead of a
+  fabricated job.
 - **Storage:** private R2 only. Upload URLs live 15 minutes, preview/download URLs live 60 minutes.
 - **Tenancy:** multi-tenant from day 1, Supabase Auth (email + Google OAuth), RLS on every table.
 - **Processing:** asynchronous, queue-driven. The browser never uploads through the Next.js server.
