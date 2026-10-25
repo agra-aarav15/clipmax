@@ -1,0 +1,9 @@
+/*
+  The preview reuses the web app's design tokens and utilities. `@source`
+  makes Tailwind scan the real components under apps/web/src as well as the
+  small preview-only pages in this app.
+*/
+@import "../../../web/src/app/globals.css";
+
+@source "../../../web/src";
+@source "../";

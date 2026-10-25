@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "turbo run dev --filter=@clipmax/web",
     "build": "turbo run build",
+    "build:pages": "pnpm --filter @clipmax/site build:pages",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test:worker": "python -m uv run --directory apps/worker pytest",
