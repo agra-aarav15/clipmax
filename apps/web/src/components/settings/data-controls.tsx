@@ -39,7 +39,7 @@ export function DataControls({
     setError(null);
 
     if (confirmation !== "DELETE") {
-      setError('Type DELETE in capitals to confirm.');
+      setError("Type DELETE in capitals to confirm.");
       return;
     }
 
@@ -53,9 +53,9 @@ export function DataControls({
       });
 
       if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as
-          | { error?: { message?: string } }
-          | null;
+        const body = (await response.json().catch(() => null)) as {
+          error?: { message?: string };
+        } | null;
         setError(body?.error?.message ?? `Could not delete the account (${response.status}).`);
         return;
       }

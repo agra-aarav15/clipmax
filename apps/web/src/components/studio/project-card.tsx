@@ -83,9 +83,7 @@ export function ProjectCard({ project }: { project: ProjectCardData }) {
               project.creditsReserved > 0 ? "text-zinc-500" : "text-zinc-700",
             )}
           >
-            {project.creditsReserved > 0
-              ? `${project.creditsReserved} cr held`
-              : "No hold"}
+            {project.creditsReserved > 0 ? `${project.creditsReserved} cr held` : "No hold"}
           </span>
         </div>
 

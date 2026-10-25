@@ -111,8 +111,7 @@ export default async function SettingsPage() {
   const plan = getPlan(planTier) ?? getPlan("free");
   const credits = typeof wallet?.balance === "number" ? wallet.balance : null;
   const email = profile?.email ?? user.email ?? "Unknown email";
-  const displayName =
-    profile?.display_name?.trim() || email.split("@")[0] || "ClipMax creator";
+  const displayName = profile?.display_name?.trim() || email.split("@")[0] || "ClipMax creator";
   const subscriptionStatus = subscription?.status ?? null;
   const loadErrors = [profileError, walletError, subscriptionError].filter(
     (error): error is NonNullable<typeof error> => Boolean(error),
@@ -245,7 +244,10 @@ export default async function SettingsPage() {
             <dl className="space-y-2.5 px-4 py-4">
               <DetailRow label="Email" value={email} />
               <DetailRow label="Account id" value={`${user.id.slice(0, 8)}…`} />
-              <DetailRow label="Member since" value={formatDate(profile?.created_at ?? user.created_at)} />
+              <DetailRow
+                label="Member since"
+                value={formatDate(profile?.created_at ?? user.created_at)}
+              />
               <DetailRow
                 label="Last sign-in"
                 value={user.last_sign_in_at ? formatDate(user.last_sign_in_at) : "—"}
@@ -276,7 +278,9 @@ export default async function SettingsPage() {
                     subscriptionStatus === "active" ? "text-signal" : "text-zinc-500",
                   )}
                 >
-                  {subscriptionStatus ? (SUBSCRIPTION_LABELS[subscriptionStatus] ?? subscriptionStatus) : "None"}
+                  {subscriptionStatus
+                    ? (SUBSCRIPTION_LABELS[subscriptionStatus] ?? subscriptionStatus)
+                    : "None"}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">

@@ -40,9 +40,9 @@ export function CancelSubscriptionButton({
       const response = await fetch("/api/billing/cancel", { method: "POST" });
 
       if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as
-          | { error?: { message?: string } }
-          | null;
+        const body = (await response.json().catch(() => null)) as {
+          error?: { message?: string };
+        } | null;
         setError(body?.error?.message ?? `Could not cancel the subscription (${response.status}).`);
         return;
       }

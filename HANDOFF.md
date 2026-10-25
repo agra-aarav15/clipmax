@@ -49,6 +49,8 @@ Long-form horizontal video in, vertical 9:16 captioned clips out.
   explain the preview boundary instead of faking the studio.
 - The full app still runs only on Node with hosted credentials. GitHub Pages cannot serve API
   routes, `/auth/callback`, the worker, or webhooks.
+- The studio, billing, legal, and hardening release is on `main`. Both GitHub Actions workflows
+  (`ci` and `pages`) pass for it; the working tree is Prettier-clean.
 
 ### Implemented in code
 
@@ -75,7 +77,7 @@ Long-form horizontal video in, vertical 9:16 captioned clips out.
 
 ### Verified locally (no hosted credentials)
 
-- Web typecheck, lint, and production build pass.
+- Web typecheck, lint, Prettier check, and production build pass.
 - Worker pytest (26), ruff, and mypy --strict pass.
 - Synthetic source renders 1080×1920 H.264/AAC with burned ASS captions; ffprobe confirms it.
 - Razorpay HMAC verification passes valid and tamper-negative cases.
@@ -140,8 +142,9 @@ Long-form horizontal video in, vertical 9:16 captioned clips out.
    are not dropped.
 5. Pick the domain/host, deploy the web app and the native worker following `docs/runbook.md`, run
    the mobile pass at 390/768/1440, and record the rollback owner.
-6. Add the reviewed privacy, terms, and refund pages plus a monitored support inbox before Razorpay
-   live mode. Do not launch live payments without them.
+6. Set `SUPPORT_EMAIL` to a monitored inbox and have counsel review the shipped privacy, terms, and
+   refund pages before Razorpay live mode. The pages exist; do not launch live payments without a
+   monitored contact.
 7. Launch only when the smoke pass and payment replay pass are green. Until then, keep the pricing
    copy honest: the code says checkout is unavailable when the Razorpay keys are missing.
 
@@ -185,6 +188,7 @@ $env:SKIP_ENV_VALIDATION='1'; pnpm --filter @clipmax/web dev --port 3200
 
 pnpm --filter @clipmax/web typecheck
 pnpm --filter @clipmax/web lint
+pnpm format:check
 $env:SKIP_ENV_VALIDATION='1'; pnpm --filter @clipmax/web build
 
 python -m uv run --directory apps/worker pytest

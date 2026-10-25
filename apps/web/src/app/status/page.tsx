@@ -32,7 +32,12 @@ type Check = {
 
 type WorkerHealth = {
   status?: string;
-  worker?: { started?: boolean; configured?: boolean; media_ready?: boolean; last_error?: string | null };
+  worker?: {
+    started?: boolean;
+    configured?: boolean;
+    media_ready?: boolean;
+    last_error?: string | null;
+  };
 };
 
 async function workerCheck(): Promise<Check> {
@@ -158,8 +163,7 @@ export default async function StatusPage() {
   ];
 
   const attention = checks.filter((check) => check.state !== "ok").length;
-  const commit =
-    process.env.GIT_COMMIT_SHA ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "local build";
+  const commit = process.env.GIT_COMMIT_SHA ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "local build";
   const checkedAt = new Date().toISOString();
 
   return (

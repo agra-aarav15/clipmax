@@ -31,7 +31,7 @@ export function PublicPage({
     <div className="relative min-h-dvh overflow-hidden bg-[#08090a]">
       <div className="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_40%_at_82%_-8%,rgba(21,94,239,0.16),transparent_68%)]" />
-        <div className="absolute inset-0 hairline-grid opacity-25 [mask-image:linear-gradient(to_bottom,black,transparent_60%)]" />
+        <div className="absolute inset-0 hairline-grid [mask-image:linear-gradient(to_bottom,black,transparent_60%)] opacity-25" />
         <div className="absolute inset-0 film-grain opacity-[0.035] mix-blend-overlay" />
       </div>
 
@@ -77,7 +77,10 @@ export function PublicPage({
         </div>
       </header>
 
-      <main id="main" className="relative z-10 mx-auto w-full max-w-[1180px] px-5 pt-14 pb-24 sm:px-8 sm:pt-20">
+      <main
+        id="main"
+        className="relative z-10 mx-auto w-full max-w-[1180px] px-5 pt-14 pb-24 sm:px-8 sm:pt-20"
+      >
         <div className="max-w-3xl">
           <p className="font-mono text-[9px] tracking-[0.22em] text-signal uppercase">{kicker}</p>
           <h1 className="mt-4 text-[clamp(2.5rem,6vw,4.6rem)] leading-[0.95] font-semibold tracking-[-0.06em] text-balance">
@@ -188,7 +191,10 @@ export function LegalList({ items }: { items: readonly ReactNode[] }) {
     <ul className="space-y-2">
       {items.map((item, index) => (
         <li key={index} className="flex gap-2.5">
-          <span aria-hidden="true" className="mt-[0.7em] size-1 shrink-0 rounded-full bg-zinc-700" />
+          <span
+            aria-hidden="true"
+            className="mt-[0.7em] size-1 shrink-0 rounded-full bg-zinc-700"
+          />
           <span>{item}</span>
         </li>
       ))}

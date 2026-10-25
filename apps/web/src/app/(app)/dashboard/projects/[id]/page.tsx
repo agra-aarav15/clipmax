@@ -409,7 +409,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       </nav>
 
       <div className="mt-5 flex flex-wrap items-start justify-between gap-5">
-        <div className="min-w-0 max-w-3xl">
+        <div className="max-w-3xl min-w-0">
           <div className="flex flex-wrap items-center gap-2.5">
             <p className="font-mono text-[9px] tracking-[0.2em] text-signal uppercase">Project</p>
             <span aria-hidden="true" className="h-3 w-px bg-white/10" />
@@ -616,10 +616,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                 <p className="font-mono text-[8px] tracking-[0.2em] text-signal uppercase">
                   The cuts
                 </p>
-                <h2
-                  id="clips-title"
-                  className="mt-1 text-[19px] font-semibold tracking-[-0.035em]"
-                >
+                <h2 id="clips-title" className="mt-1 text-[19px] font-semibold tracking-[-0.035em]">
                   {renderedCount > 0
                     ? `${renderedCount} ${renderedCount === 1 ? "clip" : "clips"} ready to post`
                     : clipViews.length > 0
@@ -709,7 +706,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         <aside className="min-w-0 space-y-4 lg:sticky lg:top-24">
           <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0a0a0b]">
             <div className="border-b border-white/[0.06] px-4 py-3.5">
-              <p className="font-mono text-[8px] tracking-[0.18em] text-zinc-500 uppercase">Record</p>
+              <p className="font-mono text-[8px] tracking-[0.18em] text-zinc-500 uppercase">
+                Record
+              </p>
               <h2 className="mt-1 text-[12.5px] font-medium text-zinc-200">Source & credits</h2>
             </div>
             <dl className="space-y-2.5 px-4 py-4">

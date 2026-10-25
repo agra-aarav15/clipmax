@@ -23,8 +23,8 @@ export default function PrivacyPage() {
         <p>
           This policy covers the ClipMax website and studio at{" "}
           <span className="text-zinc-200">clipmax</span>. It applies to account holders and anyone
-          who visits the public site. It does not cover third-party sites you link to or services you
-          use to publish a clip.
+          who visits the public site. It does not cover third-party sites you link to or services
+          you use to publish a clip.
         </p>
       </LegalSection>
 

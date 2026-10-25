@@ -27,7 +27,7 @@ export function PreviewPage({
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_78%_0%,rgba(21,94,239,0.22),transparent_65%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_40%_at_10%_60%,rgba(21,94,239,0.18),transparent_68%)]" />
-        <div className="absolute inset-0 hero-dots opacity-20 [mask-image:linear-gradient(to_bottom,black,transparent_85%)]" />
+        <div className="absolute inset-0 hero-dots [mask-image:linear-gradient(to_bottom,black,transparent_85%)] opacity-20" />
         <div className="absolute inset-0 film-grain opacity-[0.04] mix-blend-overlay" />
       </div>
 
@@ -96,14 +96,16 @@ export function PreviewPage({
             What this preview includes
           </p>
           <ul className="mt-4 space-y-2.5">
-            {["The full landing page", "Responsive layout at every width", "Reduced-motion-safe animation"].map(
-              (item) => (
-                <li key={item} className="flex items-start gap-2.5 text-[13px] text-zinc-300">
-                  <CheckIcon className="mt-0.5 size-3.5 shrink-0 text-signal" aria-hidden="true" />
-                  {item}
-                </li>
-              ),
-            )}
+            {[
+              "The full landing page",
+              "Responsive layout at every width",
+              "Reduced-motion-safe animation",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-2.5 text-[13px] text-zinc-300">
+                <CheckIcon className="mt-0.5 size-3.5 shrink-0 text-signal" aria-hidden="true" />
+                {item}
+              </li>
+            ))}
           </ul>
 
           <p className="mt-6 border-t border-white/[0.07] pt-4 font-mono text-[8px] tracking-[0.16em] text-zinc-500 uppercase">

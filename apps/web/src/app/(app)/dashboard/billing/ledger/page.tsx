@@ -96,8 +96,8 @@ export default async function LedgerPage() {
   const refunded = rows
     .filter((row) => row.reason === "refund_project" && row.delta > 0)
     .reduce((sum, row) => sum + row.delta, 0);
-  const errors = [walletError, ledgerError].filter(
-    (error): error is NonNullable<typeof error> => Boolean(error),
+  const errors = [walletError, ledgerError].filter((error): error is NonNullable<typeof error> =>
+    Boolean(error),
   );
 
   return (
@@ -185,7 +185,12 @@ export default async function LedgerPage() {
                 <Icon className={cn("size-3.5", item.tone)} />
                 {item.label}
               </dt>
-              <dd className={cn("mt-2 font-mono text-[1.55rem] leading-none tracking-[-0.04em]", item.tone)}>
+              <dd
+                className={cn(
+                  "mt-2 font-mono text-[1.55rem] leading-none tracking-[-0.04em]",
+                  item.tone,
+                )}
+              >
                 {item.value}
               </dd>
             </div>
@@ -261,8 +266,8 @@ export default async function LedgerPage() {
             </span>
             <p className="mt-4 text-[13px] font-medium text-zinc-200">No credit activity yet.</p>
             <p className="mx-auto mt-1 max-w-sm text-[11.5px] leading-relaxed text-zinc-500">
-              The signup grant appears after the profile trigger runs. Starting a project creates the
-              first reservation.
+              The signup grant appears after the profile trigger runs. Starting a project creates
+              the first reservation.
             </p>
           </div>
         )}

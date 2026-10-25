@@ -33,15 +33,18 @@ export default function RefundPage() {
       <LegalSection index="02" title="Cancelling Starter">
         <p>
           Cancel from{" "}
-          <Link href="/dashboard/billing" className="text-signal underline-offset-4 hover:underline">
+          <Link
+            href="/dashboard/billing"
+            className="text-signal underline-offset-4 hover:underline"
+          >
             Billing → Manage subscription
           </Link>
           . Cancellation stops future charges at the end of the current paid period. You keep access
           and credits until then. We do not automatically claw back credits already granted.
         </p>
         <p>
-          If you cancel during a free trial or before the first charge, no charge should be taken. If
-          Razorpay shows a charge after cancellation, contact support with the payment id.
+          If you cancel during a free trial or before the first charge, no charge should be taken.
+          If Razorpay shows a charge after cancellation, contact support with the payment id.
         </p>
       </LegalSection>
 
@@ -56,8 +59,8 @@ export default function RefundPage() {
           ]}
         />
         <p>
-          Partial-month refunds for unused time are not automatic, because credits are granted at the
-          start of the period and remain usable until it ends. We may still approve one at our
+          Partial-month refunds for unused time are not automatic, because credits are granted at
+          the start of the period and remain usable until it ends. We may still approve one at our
           discretion where the circumstances are clear.
         </p>
       </LegalSection>
@@ -79,17 +82,17 @@ export default function RefundPage() {
           ]}
         />
         <p>
-          Never send a card number, CVV, password, or one-time code. We will not ask for them. Approved
-          refunds go back to the original payment method through Razorpay; the bank’s timeline
-          applies, typically 5–10 business days after approval.
+          Never send a card number, CVV, password, or one-time code. We will not ask for them.
+          Approved refunds go back to the original payment method through Razorpay; the bank’s
+          timeline applies, typically 5–10 business days after approval.
         </p>
       </LegalSection>
 
       <LegalSection index="05" title="Chargebacks">
         <p>
-          Please contact us before opening a chargeback so we can fix the issue directly. A chargeback
-          may pause the account while the payment is disputed. We will provide Razorpay and the bank
-          with the subscription and webhook records needed to resolve it.
+          Please contact us before opening a chargeback so we can fix the issue directly. A
+          chargeback may pause the account while the payment is disputed. We will provide Razorpay
+          and the bank with the subscription and webhook records needed to resolve it.
         </p>
       </LegalSection>
 

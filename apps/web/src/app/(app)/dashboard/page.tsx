@@ -97,7 +97,10 @@ export default async function DashboardPage({
   const rawSource = first(params.source);
   const initialLink = rawSource && isSupportedSourceUrl(rawSource) ? rawSource : "";
   const uploadIntent = first(params.intent) === "upload";
-  const nextPath = dashboardNextPath({ source: initialLink || null, intent: uploadIntent ? "upload" : null });
+  const nextPath = dashboardNextPath({
+    source: initialLink || null,
+    intent: uploadIntent ? "upload" : null,
+  });
 
   const { supabase, user } = await getCurrentUser();
 
@@ -234,8 +237,7 @@ export default async function DashboardPage({
   const polling = projects.some(
     (project) => project.status === "ready" || project.status === "processing",
   );
-  const loadError =
-    walletError ?? profileError ?? projectsError ?? readyClipsError ?? null;
+  const loadError = walletError ?? profileError ?? projectsError ?? readyClipsError ?? null;
   const hasServerKeys = Boolean(
     process.env.SUPABASE_SERVICE_ROLE_KEY &&
     (process.env.R2_ACCOUNT_ID || process.env.R2_ENDPOINT) &&
@@ -318,7 +320,9 @@ export default async function DashboardPage({
             className="group flex h-10 items-center gap-2.5 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3.5 transition-colors hover:border-white/[0.15] hover:bg-white/[0.04]"
           >
             <WalletIcon className="size-3.5 text-signal" />
-            <span className="font-mono text-[11px] text-zinc-200">{credits === null ? "—" : credits}</span>
+            <span className="font-mono text-[11px] text-zinc-200">
+              {credits === null ? "—" : credits}
+            </span>
             <span className="font-mono text-[8px] tracking-[0.12em] text-zinc-600 uppercase">
               credits
             </span>
@@ -488,7 +492,8 @@ export default async function DashboardPage({
 
                 <ol className="mt-5 space-y-3.5">
                   {checklist.map((item, index) => {
-                    const active = !item.done && checklist.slice(0, index).every((step) => step.done);
+                    const active =
+                      !item.done && checklist.slice(0, index).every((step) => step.done);
                     return (
                       <li key={item.label} className="flex items-start gap-3">
                         <span
@@ -501,7 +506,11 @@ export default async function DashboardPage({
                                 : "border-white/[0.09] bg-white/[0.02] text-zinc-600",
                           )}
                         >
-                          {item.done ? <CheckIcon className="size-3" /> : String(index + 1).padStart(2, "0")}
+                          {item.done ? (
+                            <CheckIcon className="size-3" />
+                          ) : (
+                            String(index + 1).padStart(2, "0")
+                          )}
                         </span>
                         <span className="min-w-0">
                           <span
@@ -554,8 +563,8 @@ export default async function DashboardPage({
                 Up to 15 credits are held until ffprobe confirms the duration.
               </p>
               <p className="flex items-start gap-2">
-                <CheckIcon className="mt-0.5 size-3 shrink-0 text-signal/70" />
-                A permanent failure refunds the hold automatically.
+                <CheckIcon className="mt-0.5 size-3 shrink-0 text-signal/70" />A permanent failure
+                refunds the hold automatically.
               </p>
               <Link
                 href="/dashboard/billing"
@@ -575,10 +584,7 @@ export default async function DashboardPage({
             <p className="font-mono text-[8px] tracking-[0.2em] text-signal uppercase">
               The library
             </p>
-            <h2
-              id="recent-projects"
-              className="mt-1 text-[19px] font-semibold tracking-[-0.035em]"
-            >
+            <h2 id="recent-projects" className="mt-1 text-[19px] font-semibold tracking-[-0.035em]">
               Recent projects
             </h2>
           </div>

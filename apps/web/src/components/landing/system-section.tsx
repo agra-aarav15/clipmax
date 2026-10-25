@@ -71,7 +71,7 @@ export function SystemSection() {
     >
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_24%_18%,rgba(21,94,239,0.13),transparent_70%)]" />
-        <div className="absolute inset-0 grid-lines opacity-[0.12] [mask-image:radial-gradient(ellipse_at_50%_35%,black,transparent_74%)]" />
+        <div className="absolute inset-0 grid-lines [mask-image:radial-gradient(ellipse_at_50%_35%,black,transparent_74%)] opacity-[0.12]" />
       </div>
 
       <div className="mx-auto max-w-[1320px] px-5 py-24 sm:px-8 sm:py-28 lg:py-32">

@@ -89,7 +89,8 @@ export default async function ProjectsPage({
     .order("created_at", { ascending: false })
     .limit(60);
 
-  if (statusFilter === "active") request = request.in("status", ["ready", "processing", "uploading"]);
+  if (statusFilter === "active")
+    request = request.in("status", ["ready", "processing", "uploading"]);
   if (statusFilter === "completed") request = request.eq("status", "completed");
   if (statusFilter === "failed") request = request.eq("status", "failed");
   if (query) request = request.ilike("title", `%${query}%`);
@@ -186,9 +187,7 @@ export default async function ProjectsPage({
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex h-8 items-center rounded-lg px-3 text-[11px] font-medium transition-colors",
-                  active
-                    ? "bg-white/[0.08] text-white"
-                    : "text-zinc-500 hover:text-zinc-300",
+                  active ? "bg-white/[0.08] text-white" : "text-zinc-500 hover:text-zinc-300",
                 )}
               >
                 {filter.label}

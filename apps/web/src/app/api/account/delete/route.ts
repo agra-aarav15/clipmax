@@ -24,11 +24,9 @@ export async function POST(request: Request) {
 
     const parsed = bodySchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) {
-      throw new AppError(
-        "VALIDATION_ERROR",
-        'Type DELETE exactly to confirm account deletion.',
-        { details: parsed.error.issues },
-      );
+      throw new AppError("VALIDATION_ERROR", "Type DELETE exactly to confirm account deletion.", {
+        details: parsed.error.issues,
+      });
     }
 
     const { data: subscription, error: subscriptionError } = await admin
@@ -43,10 +41,7 @@ export async function POST(request: Request) {
       });
     }
 
-    if (
-      subscription &&
-      !["canceled", "completed"].includes(subscription.status)
-    ) {
+    if (subscription && !["canceled", "completed"].includes(subscription.status)) {
       throw new AppError(
         "PROJECT_NOT_READY",
         "Cancel the subscription in Billing before deleting the account. Razorpay could otherwise keep charging a closed account.",

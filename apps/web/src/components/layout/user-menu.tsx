@@ -44,7 +44,9 @@ export function UserMenu({
           {compact ? null : (
             <>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[12px] font-medium text-zinc-200">{label}</span>
+                <span className="block truncate text-[12px] font-medium text-zinc-200">
+                  {label}
+                </span>
                 <span className="mt-0.5 block font-mono text-[8px] tracking-[0.14em] text-zinc-600 uppercase">
                   {plan} plan
                 </span>

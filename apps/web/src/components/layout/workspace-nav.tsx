@@ -116,9 +116,7 @@ export function WorkspaceNav({
                     <Icon
                       className={cn(
                         "size-4 transition-colors",
-                        active
-                          ? "text-signal"
-                          : "text-zinc-500 group-hover:text-zinc-300",
+                        active ? "text-signal" : "text-zinc-500 group-hover:text-zinc-300",
                       )}
                     />
                     {item.label}

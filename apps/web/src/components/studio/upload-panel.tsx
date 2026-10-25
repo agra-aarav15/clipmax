@@ -193,15 +193,9 @@ export function UploadPanel({
       const presign = (await presignResponse.json()) as PresignResponse;
 
       setPhase("uploading");
-      await putWithProgress(
-        presign.uploadUrl,
-        file,
-        presign.headers,
-        setProgress,
-        (xhr) => {
-          xhrRef.current = xhr;
-        },
-      );
+      await putWithProgress(presign.uploadUrl, file, presign.headers, setProgress, (xhr) => {
+        xhrRef.current = xhr;
+      });
 
       setPhase("initiating");
       const initiateResponse = await fetch(`/api/projects/${presign.projectId}/initiate`, {

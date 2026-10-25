@@ -69,8 +69,8 @@ export function WorkflowSection() {
                 </span>
               </h2>
               <p className="mt-5 max-w-[34rem] text-[15px] leading-relaxed text-pretty text-zinc-400">
-                No timeline, no export presets, no browser tab to babysit. Each move is a queued
-                job with a real status and a real retry path.
+                No timeline, no export presets, no browser tab to babysit. Each move is a queued job
+                with a real status and a real retry path.
               </p>
               <Link
                 href="#pricing"
@@ -136,10 +136,7 @@ export function WorkflowSection() {
             </div>
 
             {STEPS.map((step, index) => (
-              <li
-                key={step.eyebrow}
-                className="group relative pb-10 pl-9 last:pb-0 sm:pl-12"
-              >
+              <li key={step.eyebrow} className="group relative pb-10 pl-9 last:pb-0 sm:pl-12">
                 <span
                   className="absolute top-1.5 left-0 grid size-[15px] place-items-center rounded-full border border-white/15 bg-[#08090a] transition-colors duration-300 group-hover:border-signal/50"
                   aria-hidden="true"

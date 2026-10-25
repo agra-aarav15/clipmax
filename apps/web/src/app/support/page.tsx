@@ -45,8 +45,8 @@ export default function SupportPage() {
           </span>
           <p className="mt-4 text-[14px] font-medium text-zinc-100">Open a support issue</p>
           <p className="mt-1.5 text-[12px] leading-relaxed text-zinc-500">
-            Product questions, failed renders, billing records, and data requests. Public by default,
-            so omit anything sensitive.
+            Product questions, failed renders, billing records, and data requests. Public by
+            default, so omit anything sensitive.
           </p>
           <span className="mt-4 inline-flex items-center gap-1.5 font-mono text-[8px] tracking-[0.14em] text-signal uppercase">
             github.com/agra-aarav15/clipmax
@@ -142,7 +142,10 @@ export default function SupportPage() {
       <LegalSection index="03" title="Data and account requests">
         <p>
           Export your data from{" "}
-          <Link href="/dashboard/settings" className="text-signal underline-offset-4 hover:underline">
+          <Link
+            href="/dashboard/settings"
+            className="text-signal underline-offset-4 hover:underline"
+          >
             Settings → Data &amp; privacy
           </Link>
           . Account deletion is also there and removes the profile, projects, clips, transcripts,
@@ -164,9 +167,9 @@ export default function SupportPage() {
 
       <LegalSection index="05" title="Response expectations">
         <p>
-          This is a private beta without a paid support SLA. We aim to acknowledge within two business
-          days and to be direct when something cannot be fixed immediately. Security reports take
-          priority.
+          This is a private beta without a paid support SLA. We aim to acknowledge within two
+          business days and to be direct when something cannot be fixed immediately. Security
+          reports take priority.
         </p>
       </LegalSection>
     </PublicPage>

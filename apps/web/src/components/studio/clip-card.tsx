@@ -145,9 +145,7 @@ export function ClipCard({
 
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-center justify-between gap-2 font-mono text-[8px] tracking-[0.12em] uppercase">
-          <span className="text-zinc-500">
-            {formatTimeRange(clip.startTime, clip.endTime)}
-          </span>
+          <span className="text-zinc-500">{formatTimeRange(clip.startTime, clip.endTime)}</span>
           <span className={cn("flex items-center gap-1.5", STATUS_TONE[clip.renderStatus])}>
             <span
               aria-hidden="true"

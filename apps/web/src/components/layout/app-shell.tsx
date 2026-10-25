@@ -39,7 +39,7 @@ export function AppShell({
 
       <div className="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_78%_-10%,rgba(21,94,239,0.10),transparent_70%)]" />
-        <div className="absolute inset-0 hairline-grid opacity-[0.35] [mask-image:linear-gradient(to_bottom,black,transparent_55%)]" />
+        <div className="absolute inset-0 hairline-grid [mask-image:linear-gradient(to_bottom,black,transparent_55%)] opacity-[0.35]" />
       </div>
 
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[272px] flex-col border-r border-white/[0.06] bg-[#0a0a0b]/95 backdrop-blur-xl md:flex">
@@ -153,7 +153,9 @@ export function AppShell({
               className="flex h-8 items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.025] px-2.5 transition-colors hover:border-signal/25 hover:bg-signal/[0.05] md:hidden"
               aria-label={`${credits === null ? "No" : credits} credits. Open billing.`}
             >
-              <span className="font-mono text-[10px] text-signal">{credits === null ? "—" : credits}</span>
+              <span className="font-mono text-[10px] text-signal">
+                {credits === null ? "—" : credits}
+              </span>
               <span className="font-mono text-[8px] tracking-[0.12em] text-zinc-600 uppercase">
                 cr
               </span>
@@ -187,15 +189,14 @@ export function AppShell({
               <UserMenu email={userEmail} plan={plan?.name ?? "Free"} compact />
             </div>
 
-            <MobileWorkspaceMenu
-              email={userEmail}
-              credits={credits}
-              plan={plan?.name ?? "Free"}
-            />
+            <MobileWorkspaceMenu email={userEmail} credits={credits} plan={plan?.name ?? "Free"} />
           </div>
         </header>
 
-        <main id="main" className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 sm:py-8 lg:px-9 lg:py-10">
+        <main
+          id="main"
+          className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 sm:py-8 lg:px-9 lg:py-10"
+        >
           {children}
         </main>
 

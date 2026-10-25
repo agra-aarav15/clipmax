@@ -41,9 +41,9 @@ export function ProfileForm({
       });
 
       if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as
-          | { error?: { message?: string } }
-          | null;
+        const body = (await response.json().catch(() => null)) as {
+          error?: { message?: string };
+        } | null;
         setError(body?.error?.message ?? `Could not save the display name (${response.status}).`);
         return;
       }

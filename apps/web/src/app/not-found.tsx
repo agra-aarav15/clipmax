@@ -13,10 +13,9 @@ export const metadata: Metadata = {
 export default function NotFound() {
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-[#08090a]">
-
       <div className="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_42%_at_50%_-6%,rgba(21,94,239,0.20),transparent_68%)]" />
-        <div className="absolute inset-0 hairline-grid opacity-25 [mask-image:linear-gradient(to_bottom,black,transparent_65%)]" />
+        <div className="absolute inset-0 hairline-grid [mask-image:linear-gradient(to_bottom,black,transparent_65%)] opacity-25" />
         <div className="absolute inset-0 film-grain opacity-[0.035] mix-blend-overlay" />
       </div>
 

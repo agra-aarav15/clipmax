@@ -33,12 +33,12 @@ earn it with a pile of gradients, fake dashboards, or ten competing animations.
 mark. Ice `#9BE7FF` is the readable signal: text accents, focus rings, thin rules, glow, and data
 marks.
 
-| Token  | Hex       | Use                                              |
-| ------ | --------- | ------------------------------------------------ |
-| Cobalt | `#155EEF` | Filled actions, mark, selection, active tab      |
-| Ice    | `#9BE7FF` | Serif emphasis, labels, progress, focus, glow    |
-| Ink    | `#08090A` | Canvas                                            |
-| Paper  | `#F2F1EC` | Primary text                                     |
+| Token  | Hex       | Use                                           |
+| ------ | --------- | --------------------------------------------- |
+| Cobalt | `#155EEF` | Filled actions, mark, selection, active tab   |
+| Ice    | `#9BE7FF` | Serif emphasis, labels, progress, focus, glow |
+| Ink    | `#08090A` | Canvas                                        |
+| Paper  | `#F2F1EC` | Primary text                                  |
 
 White text on cobalt passes AA for normal text at this shade; never put white text on ice. Use ink on
 ice. The old lime `#CBFF4B` is removed from the landing; do not reintroduce it without a new decision.

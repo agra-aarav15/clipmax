@@ -152,15 +152,12 @@ export async function POST() {
 
     // Store the remote id against this exact attempt before the browser opens Checkout. If another
     // request superseded the attempt, the attach is refused and the remote subscription is cancelled.
-    const { data: attached, error: attachError } = await admin.rpc(
-      "attach_checkout_subscription",
-      {
-        p_user_id: user.id,
-        p_attempt_id: decision.attemptId,
-        p_subscription_id: subscription.id,
-        p_customer_id: subscription.customer_id ?? null,
-      },
-    );
+    const { data: attached, error: attachError } = await admin.rpc("attach_checkout_subscription", {
+      p_user_id: user.id,
+      p_attempt_id: decision.attemptId,
+      p_subscription_id: subscription.id,
+      p_customer_id: subscription.customer_id ?? null,
+    });
 
     if (attachError || attached !== true) {
       console.error("[billing] attach_checkout_subscription failed", {

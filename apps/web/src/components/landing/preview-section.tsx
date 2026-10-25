@@ -77,7 +77,7 @@ export function PreviewSection() {
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_82%_4%,rgba(21,94,239,0.18),transparent_70%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_40%_35%_at_8%_80%,rgba(155,231,255,0.055),transparent_70%)]" />
-        <div className="absolute inset-0 hero-dots opacity-[0.14] [mask-image:linear-gradient(to_bottom,black,transparent_62%)]" />
+        <div className="absolute inset-0 hero-dots [mask-image:linear-gradient(to_bottom,black,transparent_62%)] opacity-[0.14]" />
       </div>
 
       <div className="mx-auto max-w-[1320px] px-5 py-24 sm:px-8 sm:py-28 lg:py-32">
@@ -107,7 +107,7 @@ export function PreviewSection() {
 
         <div className="mt-12 grid gap-8 lg:mt-16 lg:grid-cols-[minmax(0,1fr)_350px] lg:items-start">
           <div>
-            <div className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-3 [scrollbar-width:none] sm:gap-5 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0 [&::-webkit-scrollbar]:hidden">
+            <div className="-mx-5 flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-5 pb-3 sm:gap-5 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0 [&::-webkit-scrollbar]:hidden">
               {SAMPLE_CLIPS.map((clip, index) => (
                 <div
                   key={clip.id}
@@ -187,7 +187,10 @@ export function PreviewSection() {
               </div>
 
               <div className="mt-5 flex items-start gap-2 rounded-lg border border-white/[0.07] bg-black/20 px-3 py-2.5 text-[11px] leading-relaxed text-zinc-500">
-                <Clock3Icon className="mt-0.5 size-3.5 shrink-0 text-signal/70" aria-hidden="true" />
+                <Clock3Icon
+                  className="mt-0.5 size-3.5 shrink-0 text-signal/70"
+                  aria-hidden="true"
+                />
                 The worker chooses cut boundaries from the transcript. Nothing is trimmed by hand
                 after the fact.
               </div>

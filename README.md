@@ -18,15 +18,15 @@ boundary instead of showing fake data.
 
 ## Status
 
-| Phase | Scope                                               | State                                                                                       |
-| ----- | --------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| 1     | Repo scaffolding, shared contracts, navbar and hero | **Complete**                                                                                |
-| 2     | Supabase schema, RLS, credits, job queue            | **Code complete** (apply migrations to hosted project)                                      |
-| 3     | R2 presigned upload API + project lifecycle         | **Code complete** (needs R2 keys)                                                           |
-| 4     | Worker pipeline: transcribe → highlights → render   | **Code complete** (needs FFmpeg + AI provider)                                              |
-| 5     | Frontend: dashboard, upload, results, review        | **Code complete** (no full NLE, by design)                                                  |
-| 6     | Razorpay webhook + credit enforcement               | **Code complete** (needs test/live Razorpay keys)                                           |
-| 7     | Hardening, deploy, launch                           | **In progress** — static preview live; production needs credentials and a domain            |
+| Phase | Scope                                               | State                                                                            |
+| ----- | --------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 1     | Repo scaffolding, shared contracts, navbar and hero | **Complete**                                                                     |
+| 2     | Supabase schema, RLS, credits, job queue            | **Code complete** (apply migrations to hosted project)                           |
+| 3     | R2 presigned upload API + project lifecycle         | **Code complete** (needs R2 keys)                                                |
+| 4     | Worker pipeline: transcribe → highlights → render   | **Code complete** (needs FFmpeg + AI provider)                                   |
+| 5     | Frontend: dashboard, upload, results, review        | **Code complete** (no full NLE, by design)                                       |
+| 6     | Razorpay webhook + credit enforcement               | **Code complete** (needs test/live Razorpay keys)                                |
+| 7     | Hardening, deploy, launch                           | **In progress** — static preview live; production needs credentials and a domain |
 
 There is no mock data anywhere in this repository. Missing credentials produce a specific
 configuration state, never a fake success. The studio now has real project rows, signed clip

@@ -15,13 +15,9 @@ export interface SampleClipData {
   progress: string;
 }
 
-const SCENES: Record<
-  SampleScene,
-  { stage: string; light: string; wash: string; slats: string }
-> = {
+const SCENES: Record<SampleScene, { stage: string; light: string; wash: string; slats: string }> = {
   amber: {
-    stage:
-      "bg-[radial-gradient(ellipse_at_68%_16%,#6b4a26_0%,#2c1e11_38%,#0b0a08_80%)]",
+    stage: "bg-[radial-gradient(ellipse_at_68%_16%,#6b4a26_0%,#2c1e11_38%,#0b0a08_80%)]",
     light: "bg-amber-200/20",
     wash: "bg-amber-400/[0.07]",
     slats:

@@ -271,19 +271,16 @@ export async function POST(request: Request) {
     let applied: ApplyResult | null = null;
 
     if (nextStatus) {
-      const { data: applyData, error: applyError } = await admin.rpc(
-        "apply_subscription_event",
-        {
-          p_user_id: stored.user_id,
-          p_provider_subscription_id: subscription.id,
-          p_customer_id: subscription.customer_id ?? null,
-          p_status: nextStatus,
-          p_current_period_end: toIso(subscription.current_end),
-          p_cancel_at_period_end: cancelFlag(subscription.cancel_at_cycle_end),
-          p_event_at: toIso(body.created_at) ?? new Date().toISOString(),
-          p_event_id: eventId,
-        },
-      );
+      const { data: applyData, error: applyError } = await admin.rpc("apply_subscription_event", {
+        p_user_id: stored.user_id,
+        p_provider_subscription_id: subscription.id,
+        p_customer_id: subscription.customer_id ?? null,
+        p_status: nextStatus,
+        p_current_period_end: toIso(subscription.current_end),
+        p_cancel_at_period_end: cancelFlag(subscription.cancel_at_cycle_end),
+        p_event_at: toIso(body.created_at) ?? new Date().toISOString(),
+        p_event_id: eventId,
+      });
 
       if (applyError) throw applyError;
       applied = applyData as ApplyResult | null;

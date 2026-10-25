@@ -139,7 +139,9 @@ export async function POST() {
     return jsonOk({
       cancelled: true,
       cancelAtPeriodEnd: result.cancelAtPeriodEnd === true,
-      periodEnd: result.periodEnd ?? (atCycleEnd ? subscription.current_period_end : new Date().toISOString()),
+      periodEnd:
+        result.periodEnd ??
+        (atCycleEnd ? subscription.current_period_end : new Date().toISOString()),
       alreadyScheduled: false,
     });
   });

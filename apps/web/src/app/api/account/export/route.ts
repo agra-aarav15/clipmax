@@ -46,26 +46,29 @@ export async function GET() {
     const { user } = await requireUser();
     const admin = requireAdminClient();
 
-    const [{ data: profile, error: profileError }, { data: wallet, error: walletError }, { data: subscription, error: subscriptionError }] =
-      await Promise.all([
-        admin
-          .from("profiles")
-          .select("id, email, display_name, avatar_url, plan, created_at, updated_at")
-          .eq("id", user.id)
-          .maybeSingle(),
-        admin
-          .from("credit_wallets")
-          .select("balance, updated_at")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-        admin
-          .from("subscriptions")
-          .select(
-            "provider, provider_customer_id, provider_subscription_id, plan, status, current_period_end, cancel_at_period_end, created_at, updated_at",
-          )
-          .eq("user_id", user.id)
-          .maybeSingle(),
-      ]);
+    const [
+      { data: profile, error: profileError },
+      { data: wallet, error: walletError },
+      { data: subscription, error: subscriptionError },
+    ] = await Promise.all([
+      admin
+        .from("profiles")
+        .select("id, email, display_name, avatar_url, plan, created_at, updated_at")
+        .eq("id", user.id)
+        .maybeSingle(),
+      admin
+        .from("credit_wallets")
+        .select("balance, updated_at")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      admin
+        .from("subscriptions")
+        .select(
+          "provider, provider_customer_id, provider_subscription_id, plan, status, current_period_end, cancel_at_period_end, created_at, updated_at",
+        )
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
 
     if (profileError) {
       throw new AppError("INTERNAL_ERROR", "Could not export the profile.", {

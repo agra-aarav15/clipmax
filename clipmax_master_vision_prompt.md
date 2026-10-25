@@ -18,17 +18,20 @@ You will generate real, modular, and maintainable production code covering both 
 ## 2. TECHNOLOGY STACK SPECIFICATION
 
 ### Frontend & Application Layer
+
 - **Framework:** Next.js (App Router, TypeScript) or React 18+ with Vite & Tailwind CSS.
 - **UI Components:** `shadcn/ui`, Radix UI primitives, Lucide React icons.
 - **State & Server Cache:** TanStack Query (React Query) and Zustand.
 - **Video Playback:** Native HTML5 Video with custom canvas/DOM overlays for synchronized subtitle preview.
 
 ### Database, Auth & Security
+
 - **Platform:** Supabase (Managed PostgreSQL, GoTrue Auth).
 - **Security:** Strict Row-Level Security (RLS) on all user tables with security definer functions for sensitive ledger transactions.
 - **Storage:** Cloudflare R2 (S3-compatible) for input video files and rendered clips.
 
 ### Video Processing & AI Pipeline Worker
+
 - **Runtime:** Python 3.11+, Containerized (Docker) targeting Google Cloud Run Jobs / Cloud Run Services.
 - **Core Tooling:** `ffmpeg` (compiled with libass, fontconfig, nvenc/cpu optimizations).
 - **Transcription:** OpenAI Whisper API / Groq Whisper / Faster-Whisper (timestamped word-level output).
@@ -36,6 +39,7 @@ You will generate real, modular, and maintainable production code covering both 
 - **Cropping & Subtitling:** FFmpeg filtergraph for 16:9 to 9:16 intelligent cropping (face/center crop) and `.ass` subtitle rendering with word-by-word highlights and animation styles.
 
 ### Payments & Invoicing
+
 - **Provider:** Razorpay Subscriptions (Test Mode ready, webhook signature verification, automatic credit top-up).
 
 ---
@@ -124,6 +128,7 @@ create table public.credit_ledger (
 ## 4. SYSTEM WORKFLOW & API CONTRACTS
 
 ### Phase A: Direct-to-R2 Upload
+
 1. Frontend calls `POST /api/upload/pre-signed-url` with `{ fileName, fileType, fileSize }`.
 2. Backend verifies user authentication and available processing balance.
 3. Backend calls Cloudflare R2 via AWS S3 SDK to generate a pre-signed `PUT` URL (expires in 15 mins).
@@ -131,6 +136,7 @@ create table public.credit_ledger (
 5. Frontend notifies backend on completion: `POST /api/projects/initiate-processing`.
 
 ### Phase B: Video AI Pipeline (Python Worker)
+
 1. **Download & Audio Extraction:** Worker fetches source video from R2, extracts `.wav` 16kHz mono audio via FFmpeg:
    ```bash
    ffmpeg -i input.mp4 -vn -ar 16000 -ac 1 -c:a pcm_s16le audio.wav
@@ -149,6 +155,7 @@ create table public.credit_ledger (
 5. **Upload & DB Writeback:** Worker pushes generated clip MP4 files to R2 and writes clip records and timestamps into Supabase.
 
 ### Phase C: Razorpay Billing Webhook
+
 1. Handle `subscription.activated`, `subscription.charged`, and `payment.failed`.
 2. Compute cryptographic signature: `HMAC-SHA256(request_body, webhook_secret)`.
 3. Atomically credit user ledger and upgrade subscription state.
@@ -160,7 +167,7 @@ create table public.credit_ledger (
 Follow a modern, minimalist dark-mode SaaS design inspired by high-end creative tooling:
 
 1. **Dashboard:**
-   - Active processing queue status with explicit step indicators (*Uploading $\rightarrow$ Transcribing $\rightarrow$ Analyzing Hooks $\rightarrow$ Rendering*).
+   - Active processing queue status with explicit step indicators (_Uploading $\rightarrow$ Transcribing $\rightarrow$ Analyzing Hooks $\rightarrow$ Rendering_).
    - Recent projects list with thumbnail, duration, and clip count badge.
 2. **Upload Modal:**
    - Drag-and-drop zone with video format validation (.mp4, .mov), max size/duration indicator, and credit cost preview.

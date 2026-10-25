@@ -27,9 +27,7 @@ type Swatch = { name: string; hex: string; note?: string };
 
 function Micro({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <span
-      className={`font-mono text-[8px] leading-none tracking-[0.16em] uppercase ${className}`}
-    >
+    <span className={`font-mono text-[8px] leading-none tracking-[0.16em] uppercase ${className}`}>
       {children}
     </span>
   );
@@ -284,9 +282,7 @@ function Signal() {
                   {meta}
                 </span>
               </div>
-              <span className="font-mono text-[7px] tracking-[0.16em] text-[#9BE7FF]/70">
-                {n}
-              </span>
+              <span className="font-mono text-[7px] tracking-[0.16em] text-[#9BE7FF]/70">{n}</span>
             </div>
           ))}
         </div>
@@ -447,9 +443,7 @@ function ControlRoom() {
             <div key={line} className="flex items-baseline gap-2">
               <span className="text-[#39422F]">{time}</span>
               <span className="flex-1 truncate">{line}</span>
-              <span className={state === "run" ? "text-[#C8FF5A]" : "text-[#4E5B45]"}>
-                {state}
-              </span>
+              <span className={state === "run" ? "text-[#C8FF5A]" : "text-[#4E5B45]"}>{state}</span>
             </div>
           ))}
         </div>
@@ -459,9 +453,7 @@ function ControlRoom() {
             ingest
           </div>
           <div className="space-y-2 p-2 text-[9px] leading-relaxed">
-            <p className="text-[#C8FF5A]">
-              $ clipmax cut https://youtu.be/…
-            </p>
+            <p className="text-[#C8FF5A]">$ clipmax cut https://youtu.be/…</p>
             {[
               ["transcribe", 100],
               ["highlights", 100],
@@ -473,16 +465,11 @@ function ControlRoom() {
                   <span>{value}%</span>
                 </div>
                 <div className="mt-1 h-1 bg-[#1A2016]">
-                  <div
-                    className="h-1 bg-[#C8FF5A]"
-                    style={{ width: `${value as number}%` }}
-                  />
+                  <div className="h-1 bg-[#C8FF5A]" style={{ width: `${value as number}%` }} />
                 </div>
               </div>
             ))}
-            <p className="text-[8px] text-[#5C6B52]">
-              3 of 5 clips ready · 1080×1920 · h264
-            </p>
+            <p className="text-[8px] text-[#5C6B52]">3 of 5 clips ready · 1080×1920 · h264</p>
           </div>
         </div>
       </div>
@@ -492,9 +479,7 @@ function ControlRoom() {
           <span className="flex size-5 items-center justify-center border border-[#C8FF5A] text-[9px] text-[#C8FF5A]">
             ↳
           </span>
-          <span className="text-[10px] text-[#DDE3D6]">
-            queue is a table, not a promise
-          </span>
+          <span className="text-[10px] text-[#DDE3D6]">queue is a table, not a promise</span>
         </div>
         <Micro className="text-[#5C6B52]">SKIP LOCKED · LEASE 90s</Micro>
       </div>
@@ -505,11 +490,27 @@ function ControlRoom() {
 /* 05 — Gallery ----------------------------------------------------- */
 
 const POSTERS = [
-  { tone: "bg-[linear-gradient(170deg,#3A3630,#141312_70%)]", y: "0px", quote: "I stopped guessing" },
+  {
+    tone: "bg-[linear-gradient(170deg,#3A3630,#141312_70%)]",
+    y: "0px",
+    quote: "I stopped guessing",
+  },
   { tone: "bg-[linear-gradient(170deg,#4A4238,#161514_70%)]", y: "34px", quote: "the quiet year" },
-  { tone: "bg-[linear-gradient(170deg,#2E3136,#111214_70%)]", y: "10px", quote: "ask better questions" },
-  { tone: "bg-[linear-gradient(170deg,#3D332C,#131211_70%)]", y: "46px", quote: "ship the small thing" },
-  { tone: "bg-[linear-gradient(170deg,#33322E,#121212_70%)]", y: "20px", quote: "taste is a skill" },
+  {
+    tone: "bg-[linear-gradient(170deg,#2E3136,#111214_70%)]",
+    y: "10px",
+    quote: "ask better questions",
+  },
+  {
+    tone: "bg-[linear-gradient(170deg,#3D332C,#131211_70%)]",
+    y: "46px",
+    quote: "ship the small thing",
+  },
+  {
+    tone: "bg-[linear-gradient(170deg,#33322E,#121212_70%)]",
+    y: "20px",
+    quote: "taste is a skill",
+  },
 ];
 
 function Gallery() {
@@ -568,9 +569,12 @@ function Gallery() {
 function HookMachine() {
   return (
     <div className="relative overflow-hidden rounded-[20px] border border-[#242424] bg-black p-4 text-[#F4F2ED] sm:p-6">
-      <div className="pointer-events-none absolute inset-0 film-grain opacity-[0.06]" aria-hidden="true" />
+      <div
+        className="pointer-events-none absolute inset-0 film-grain opacity-[0.06]"
+        aria-hidden="true"
+      />
       <div className="relative flex items-center justify-between">
-        <Micro className="text-[#6F6B64]">CapCut · 9:16 · 00:31</Micro>
+        <Micro className="text-[#6F6B64]">ClipMax · 9:16 · 00:31</Micro>
         <Micro className="flex items-center gap-1.5 text-[#D8FF3E]">
           <span className="size-1 rounded-full bg-[#D8FF3E]" />
           Hook 92
@@ -640,7 +644,7 @@ export default function DirectionsPage() {
     <div className="relative min-h-dvh overflow-x-clip">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[620px]" aria-hidden="true">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_70%_-10%,rgba(21,94,239,0.18),transparent_65%)]" />
-        <div className="absolute inset-0 hero-dots opacity-[0.14] [mask-image:linear-gradient(to_bottom,black,transparent_88%)]" />
+        <div className="absolute inset-0 hero-dots [mask-image:linear-gradient(to_bottom,black,transparent_88%)] opacity-[0.14]" />
         <div className="absolute inset-0 film-grain opacity-[0.035] mix-blend-overlay" />
       </div>
 
@@ -879,9 +883,18 @@ export default function DirectionsPage() {
 
         <section className="mt-14 grid gap-px overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.07] sm:grid-cols-3">
           {[
-            ["Who is it for?", "A solo creator with a back catalogue. Cutting Room and Hook Machine speak to them; Control Room speaks to their CTO."],
-            ["What must it prove?", "That a real long video becomes real vertical clips. Hook Machine proves it fastest; Gallery proves it most elegantly."],
-            ["What can we build best?", "The current stack already carries grain, serif emphasis, and GSAP. Cutting Room is an evolution, not a rewrite."],
+            [
+              "Who is it for?",
+              "A solo creator with a back catalogue. Cutting Room and Hook Machine speak to them; Control Room speaks to their CTO.",
+            ],
+            [
+              "What must it prove?",
+              "That a real long video becomes real vertical clips. Hook Machine proves it fastest; Gallery proves it most elegantly.",
+            ],
+            [
+              "What can we build best?",
+              "The current stack already carries grain, serif emphasis, and GSAP. Cutting Room is an evolution, not a rewrite.",
+            ],
           ].map(([question, answer]) => (
             <div key={question} className="bg-[#08090a] p-5">
               <Micro className="text-zinc-600">{question}</Micro>

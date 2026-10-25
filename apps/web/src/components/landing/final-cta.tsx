@@ -15,7 +15,7 @@ export function FinalCta() {
         <div className="absolute top-1/2 left-1/2 size-[78rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.035]" />
         <div className="absolute top-1/2 left-1/2 size-[56rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.04]" />
         <div className="absolute top-1/2 left-1/2 size-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.05]" />
-        <div className="absolute inset-0 hero-dots opacity-[0.18] [mask-image:radial-gradient(ellipse_at_50%_45%,black,transparent_68%)]" />
+        <div className="absolute inset-0 hero-dots [mask-image:radial-gradient(ellipse_at_50%_45%,black,transparent_68%)] opacity-[0.18]" />
         <div className="absolute inset-0 film-grain opacity-[0.05] mix-blend-overlay" />
       </div>
 

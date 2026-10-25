@@ -42,9 +42,9 @@ export default function TermsPage() {
 
       <LegalSection index="03" title="Your account">
         <p>
-          Keep access to your email secure. You are responsible for activity under your account. Tell
-          us promptly if you believe someone else has access. Sign-in is handled by Supabase Auth
-          using a magic link or Google; ClipMax never asks for your Google password.
+          Keep access to your email secure. You are responsible for activity under your account.
+          Tell us promptly if you believe someone else has access. Sign-in is handled by Supabase
+          Auth using a magic link or Google; ClipMax never asks for your Google password.
         </p>
       </LegalSection>
 
@@ -52,8 +52,8 @@ export default function TermsPage() {
         <p>
           You keep ownership of the video, audio, links, transcripts, and clips you submit or
           generate. To run the service, you grant ClipMax a limited, non-exclusive licence to host,
-          copy, transcode, analyse, crop, caption, and display that content only as needed to process
-          your projects and show results back to you.
+          copy, transcode, analyse, crop, caption, and display that content only as needed to
+          process your projects and show results back to you.
         </p>
         <p>
           You confirm that you have the rights needed to upload or link the content and to authorise
@@ -67,8 +67,9 @@ export default function TermsPage() {
         <p>
           Transcription, highlight selection, scoring, and caption timing are probabilistic. A clip
           may be misheard, mistimed, or simply not very good. Review every export before publishing.
-          ClipMax does not guarantee virality, reach, or platform acceptance. The renderer centre-crops
-          to 9:16; it does not perform face tracking, and it does not add music you have not supplied.
+          ClipMax does not guarantee virality, reach, or platform acceptance. The renderer
+          centre-crops to 9:16; it does not perform face tracking, and it does not add music you
+          have not supplied.
         </p>
       </LegalSection>
 
@@ -113,9 +114,9 @@ export default function TermsPage() {
       <LegalSection index="09" title="Suspension and termination">
         <p>
           You may stop using ClipMax at any time and delete your account in Settings. We may suspend
-          or terminate access for a material breach, non-payment, legal requirement, or risk to other
-          users or the service. Where practical, we will explain why and allow you to export content
-          first.
+          or terminate access for a material breach, non-payment, legal requirement, or risk to
+          other users or the service. Where practical, we will explain why and allow you to export
+          content first.
         </p>
       </LegalSection>
 
@@ -126,19 +127,20 @@ export default function TermsPage() {
           warrant uninterrupted or error-free operation.
         </p>
         <p>
-          To the extent permitted by law, ClipMax is not liable for indirect, incidental, special, or
-          consequential losses, lost profits, lost reach, or lost content. Our total liability for a
-          claim relating to the service is limited to the greater of the amount you paid ClipMax in
-          the three months before the claim or INR 5,000. Nothing here limits liability that cannot
-          lawfully be limited, including fraud or death or personal injury caused by negligence.
+          To the extent permitted by law, ClipMax is not liable for indirect, incidental, special,
+          or consequential losses, lost profits, lost reach, or lost content. Our total liability
+          for a claim relating to the service is limited to the greater of the amount you paid
+          ClipMax in the three months before the claim or INR 5,000. Nothing here limits liability
+          that cannot lawfully be limited, including fraud or death or personal injury caused by
+          negligence.
         </p>
       </LegalSection>
 
       <LegalSection index="11" title="Indemnity">
         <p>
-          You will indemnify ClipMax against third-party claims, damages, and reasonable costs arising
-          from content you submitted, your breach of these terms, or your violation of another
-          person’s rights, to the extent permitted by law.
+          You will indemnify ClipMax against third-party claims, damages, and reasonable costs
+          arising from content you submitted, your breach of these terms, or your violation of
+          another person’s rights, to the extent permitted by law.
         </p>
       </LegalSection>
 
@@ -149,9 +151,9 @@ export default function TermsPage() {
           limiting any mandatory consumer rights you have where you live.
         </p>
         <p>
-          We may update these terms as the beta changes. A material change will be posted here with a
-          new date before it takes effect. Continued use after that date means you accept the updated
-          terms. Questions go through the{" "}
+          We may update these terms as the beta changes. A material change will be posted here with
+          a new date before it takes effect. Continued use after that date means you accept the
+          updated terms. Questions go through the{" "}
           <Link href="/support" className="text-signal underline-offset-4 hover:underline">
             support route
           </Link>

@@ -223,9 +223,7 @@ const replaySameKey = await one(
   "select public.reserve_credits($1, $2, 15, 'reserve:pgtest:2') as ok",
   [userA, projectA.id],
 );
-const settled = await one("select public.settle_project_credits($1, 10) as refund", [
-  projectA.id,
-]);
+const settled = await one("select public.settle_project_credits($1, 10) as refund", [projectA.id]);
 const settledAgain = await one("select public.settle_project_credits($1, 10) as refund", [
   projectA.id,
 ]);
@@ -233,11 +231,19 @@ const afterSettle = await one("select balance from public.credit_wallets where u
   userA,
 ]);
 
-check("a second reservation on the same project succeeds after a refund", replayReserved.ok === true, replayReserved);
+check(
+  "a second reservation on the same project succeeds after a refund",
+  replayReserved.ok === true,
+  replayReserved,
+);
 check("replaying a held reservation returns true", replaySameKey.ok === true, replaySameKey);
 check("settlement refunds the unused reservation", settled.refund === 5, settled);
 check("replaying settlement is a no-op", settledAgain.refund === 0, settledAgain);
-check("settlement leaves the actual charge debited", afterSettle.balance === 50, afterSettle.balance);
+check(
+  "settlement leaves the actual charge debited",
+  afterSettle.balance === 50,
+  afterSettle.balance,
+);
 
 await expectError(
   "replaying a settled reservation raises instead of claiming a new hold",
@@ -253,8 +259,16 @@ const afterSettledRefund = await one(
   "select balance from public.credit_wallets where user_id = $1",
   [userA],
 );
-check("a failure after settlement refunds the actual charge", settledRefund.amount === 10, settledRefund);
-check("the post-settlement refund restores the wallet", afterSettledRefund.balance === 60, afterSettledRefund.balance);
+check(
+  "a failure after settlement refunds the actual charge",
+  settledRefund.amount === 10,
+  settledRefund,
+);
+check(
+  "the post-settlement refund restores the wallet",
+  afterSettledRefund.balance === 60,
+  afterSettledRefund.balance,
+);
 
 // ---------------------------------------------------------------------------
 // Project creation, processing, and retry
@@ -272,7 +286,9 @@ const linkProject = await one(
   "select status, credits_reserved, credit_reservation_key from public.projects where id = $1",
   [linkProjectId],
 );
-const linkWallet = await one("select balance from public.credit_wallets where user_id = $1", [userD]);
+const linkWallet = await one("select balance from public.credit_wallets where user_id = $1", [
+  userD,
+]);
 const linkJobs = await one(
   "select count(*)::int as n from public.processing_jobs where project_id = $1 and job_type = 'transcribe' and status = 'queued'",
   [linkProjectId],
@@ -281,7 +297,11 @@ const linkJobs = await one(
 check("create_link_project reserves and queues in one call", link.result.ok === true, link.result);
 check("the linked project is ready", linkProject.status === "ready", linkProject);
 check("the linked project holds its reservation", linkProject.credits_reserved === 12, linkProject);
-check("the linked project records its reservation key", linkProject.credit_reservation_key === "reserve:link:1", linkProject);
+check(
+  "the linked project records its reservation key",
+  linkProject.credit_reservation_key === "reserve:link:1",
+  linkProject,
+);
 check("the linked project debits the wallet", linkWallet.balance === 18, linkWallet.balance);
 check("the linked project queues exactly one transcribe job", linkJobs.n === 1, linkJobs.n);
 
@@ -302,17 +322,20 @@ check(
   poorLink.result,
 );
 check("an unaffordable link leaves no project row", poorProject.n === 0, poorProject.n);
-check("an unaffordable link leaves the wallet untouched", poorWallet.balance === 18, poorWallet.balance);
+check(
+  "an unaffordable link leaves the wallet untouched",
+  poorWallet.balance === 18,
+  poorWallet.balance,
+);
 
 const uploadProjectId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 await one(
   "select public.create_upload_project($1, $2, 'Uploaded source', 'sources/d/source.mp4', 'source.mp4', 'video/mp4', 1048576)",
   [userD, uploadProjectId],
 );
-const beforeUploadStart = await one(
-  "select status from public.projects where id = $1",
-  [uploadProjectId],
-);
+const beforeUploadStart = await one("select status from public.projects where id = $1", [
+  uploadProjectId,
+]);
 const uploadStart = await one(
   "select public.begin_upload_processing($1, $2, 10, 1048576) as result",
   [userD, uploadProjectId],
@@ -329,12 +352,36 @@ const uploadAgain = await one(
   [userD, uploadProjectId],
 );
 
-check("a presigned upload starts in uploading state", beforeUploadStart.status === "uploading", beforeUploadStart);
-check("begin_upload_processing reserves and queues", uploadStart.result.ok === true, uploadStart.result);
-check("begin_upload_processing moves the project to ready", uploadProject.status === "ready", uploadProject);
-check("begin_upload_processing records the reservation", uploadProject.credits_reserved === 10, uploadProject);
-check("begin_upload_processing records the probed size", Number(uploadProject.size_bytes) === 1048576, uploadProject.size_bytes);
-check("begin_upload_processing debits the wallet", uploadWallet.balance === 8, uploadWallet.balance);
+check(
+  "a presigned upload starts in uploading state",
+  beforeUploadStart.status === "uploading",
+  beforeUploadStart,
+);
+check(
+  "begin_upload_processing reserves and queues",
+  uploadStart.result.ok === true,
+  uploadStart.result,
+);
+check(
+  "begin_upload_processing moves the project to ready",
+  uploadProject.status === "ready",
+  uploadProject,
+);
+check(
+  "begin_upload_processing records the reservation",
+  uploadProject.credits_reserved === 10,
+  uploadProject,
+);
+check(
+  "begin_upload_processing records the probed size",
+  Number(uploadProject.size_bytes) === 1048576,
+  uploadProject.size_bytes,
+);
+check(
+  "begin_upload_processing debits the wallet",
+  uploadWallet.balance === 8,
+  uploadWallet.balance,
+);
 check(
   "a repeated begin_upload_processing is rejected, not charged twice",
   uploadAgain.result.ok === false && uploadAgain.result.code === "not_ready",
@@ -344,9 +391,10 @@ check(
 // A failed run has already refunded its hold. Retry must take a fresh reservation key so the
 // second refund is not swallowed by the first one's ledger entry.
 await db.query("select public.refund_project_credits($1)", [uploadProjectId]);
-await db.query("update public.projects set status = 'failed', error_message = 'simulated' where id = $1", [
-  uploadProjectId,
-]);
+await db.query(
+  "update public.projects set status = 'failed', error_message = 'simulated' where id = $1",
+  [uploadProjectId],
+);
 const retry = await one("select public.retry_project($1, $2, 10) as result", [
   userD,
   uploadProjectId,
@@ -369,14 +417,22 @@ const retryAgain = await one("select public.retry_project($1, $2, 10) as result"
 
 check("retry_project re-queues a failed project", retry.result.ok === true, retry.result);
 check("retry_project restores ready state", retriedProject.status === "ready", retriedProject);
-check("retry_project takes a fresh reservation", retriedProject.credits_reserved === 10, retriedProject);
+check(
+  "retry_project takes a fresh reservation",
+  retriedProject.credits_reserved === 10,
+  retriedProject,
+);
 check(
   "retry_project uses a new reservation key",
   retriedProject.credit_reservation_key.startsWith("reserve:") &&
     retriedProject.credit_reservation_key.includes(":retry:"),
   retriedProject.credit_reservation_key,
 );
-check("retry_project debits the new reservation", retriedWallet.balance === 8, retriedWallet.balance);
+check(
+  "retry_project debits the new reservation",
+  retriedWallet.balance === 8,
+  retriedWallet.balance,
+);
 check("retry_project reuses the queued transcribe job", retriedJobs.n === 1, retriedJobs.n);
 check(
   "retry_project refuses a project that is already ready",
@@ -407,7 +463,11 @@ const pendingRow = await one(
   [userE],
 );
 
-check("the first checkout creates a pending attempt", checkoutOne.result.action === "create", checkoutOne.result);
+check(
+  "the first checkout creates a pending attempt",
+  checkoutOne.result.action === "create",
+  checkoutOne.result,
+);
 check(
   "a superseding checkout creates a new attempt before attach",
   checkoutTwo.result.action === "create" &&
@@ -450,18 +510,17 @@ check(
 
 // Re-subscribe and activate through the webhook path.
 const checkoutThree = await one("select public.begin_checkout($1, 600) as result", [userE]);
-await one(
-  "select public.attach_checkout_subscription($1, $2, 'sub_active', 'cust_active') as ok",
-  [userE, checkoutThree.result.attemptId],
-);
+await one("select public.attach_checkout_subscription($1, $2, 'sub_active', 'cust_active') as ok", [
+  userE,
+  checkoutThree.result.attemptId,
+]);
 const activeEvent = await one(
   "select public.apply_subscription_event($1, 'sub_active', 'cust_active', 'active', now() + interval '30 days', false, now(), 'evt_active') as result",
   [userE],
 );
-const afterActive = await one(
-  "select status, plan from public.subscriptions where user_id = $1",
-  [userE],
-);
+const afterActive = await one("select status, plan from public.subscriptions where user_id = $1", [
+  userE,
+]);
 const activeProfile = await one("select plan from public.profiles where id = $1", [userE]);
 const manage = await one("select public.begin_checkout($1, 600) as result", [userE]);
 const staleEvent = await one(
@@ -469,7 +528,11 @@ const staleEvent = await one(
   [userE],
 );
 
-check("an active subscription event is applied", activeEvent.result.applied === true, activeEvent.result);
+check(
+  "an active subscription event is applied",
+  activeEvent.result.applied === true,
+  activeEvent.result,
+);
 check("the active subscription is stored", afterActive.status === "active", afterActive);
 check("the active subscription upgrades the plan", activeProfile.plan === "starter", activeProfile);
 check(
@@ -518,8 +581,16 @@ const afterTerminal = await one(
   "select status, cancel_at_period_end from public.subscriptions where user_id = $1",
   [userE],
 );
-check("a terminal event cancels the subscription", terminalEvent.result.applied === true, terminalEvent.result);
-check("a terminal event returns the account to free", terminalProfile.plan === "free", terminalProfile);
+check(
+  "a terminal event cancels the subscription",
+  terminalEvent.result.applied === true,
+  terminalEvent.result,
+);
+check(
+  "a terminal event returns the account to free",
+  terminalProfile.plan === "free",
+  terminalProfile,
+);
 check(
   "a terminal event clears the scheduled flag",
   afterTerminal.status === "canceled" && afterTerminal.cancel_at_period_end === false,
@@ -559,7 +630,11 @@ const storedEvent = await one(
   "select processed_at, payload from public.webhook_events where provider = 'razorpay' and event_id = 'evt_claim_1'",
 );
 
-check("the first webhook delivery claims the event", claimFirst.result.claimed === true, claimFirst.result);
+check(
+  "the first webhook delivery claims the event",
+  claimFirst.result.claimed === true,
+  claimFirst.result,
+);
 check(
   "a concurrent delivery is told the event is in flight",
   claimInFlight.result.claimed === false && claimInFlight.result.inProgress === true,
@@ -614,7 +689,9 @@ const userF = "66666666-6666-4666-8666-666666666666";
 await db.query("insert into auth.users (id, email) values ($1, $2)", [userF, "f@example.com"]);
 
 // Earlier tests leave queued jobs behind. Finish them so claim_next_job is deterministic here.
-await db.query("update public.processing_jobs set status = 'completed' where status in ('queued', 'in_progress')");
+await db.query(
+  "update public.processing_jobs set status = 'completed' where status in ('queued', 'in_progress')",
+);
 
 const workerProject1 = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 await one(
@@ -637,15 +714,18 @@ check(
 );
 check(
   "the wrong worker cannot report progress",
-  (await one("select public.update_job_progress($1, 'worker-b', 50) as ok", [claimed1.id])).ok === false,
+  (await one("select public.update_job_progress($1, 'worker-b', 50) as ok", [claimed1.id])).ok ===
+    false,
 );
 check(
   "the owning worker can report progress",
-  (await one("select public.update_job_progress($1, 'worker-a', 150) as ok", [claimed1.id])).ok === true,
+  (await one("select public.update_job_progress($1, 'worker-a', 150) as ok", [claimed1.id])).ok ===
+    true,
 );
-const clampedProgress = await one("select progress_percent from public.processing_jobs where id = $1", [
-  claimed1.id,
-]);
+const clampedProgress = await one(
+  "select progress_percent from public.processing_jobs where id = $1",
+  [claimed1.id],
+);
 check("progress is clamped to 100", clampedProgress.progress_percent === 100, clampedProgress);
 check(
   "the wrong worker cannot complete the job",
@@ -653,20 +733,24 @@ check(
 );
 check(
   "the wrong worker cannot fail the job",
-  (await one("select public.fail_job($1, 'worker-b', 'stolen', true) as ok", [claimed1.id])).ok === false,
+  (await one("select public.fail_job($1, 'worker-b', 'stolen', true) as ok", [claimed1.id])).ok ===
+    false,
 );
 check(
   "the owning worker can fail the job permanently",
-  (await one("select public.fail_job($1, 'worker-a', 'simulated permanent failure', true) as ok", [
-    claimed1.id,
-  ])).ok === true,
+  (
+    await one("select public.fail_job($1, 'worker-a', 'simulated permanent failure', true) as ok", [
+      claimed1.id,
+    ])
+  ).ok === true,
 );
 const failedJob = await one("select status, locked_by from public.processing_jobs where id = $1", [
   claimed1.id,
 ]);
-const failedProject = await one("select status, credits_reserved from public.projects where id = $1", [
-  workerProject1,
-]);
+const failedProject = await one(
+  "select status, credits_reserved from public.projects where id = $1",
+  [workerProject1],
+);
 const workerWalletAfterFail = await one(
   "select balance from public.credit_wallets where user_id = $1",
   [userF],
@@ -681,10 +765,15 @@ check(
   failedProject.status === "failed" && failedProject.credits_reserved === 0,
   failedProject,
 );
-check("the failed reservation returns to the wallet", workerWalletAfterFail.balance === 30, workerWalletAfterFail.balance);
+check(
+  "the failed reservation returns to the wallet",
+  workerWalletAfterFail.balance === 30,
+  workerWalletAfterFail.balance,
+);
 check(
   "a second failure report from the old lease is ignored",
-  (await one("select public.fail_job($1, 'worker-a', 'again', true) as ok", [claimed1.id])).ok === false,
+  (await one("select public.fail_job($1, 'worker-a', 'again', true) as ok", [claimed1.id])).ok ===
+    false,
 );
 
 const workerProject2 = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
@@ -702,9 +791,10 @@ check(
   "the owning worker can complete the job",
   (await one("select public.complete_job($1, 'worker-a') as ok", [claimed2.id])).ok === true,
 );
-const completedJob = await one("select status, progress_percent, locked_by from public.processing_jobs where id = $1", [
-  claimed2.id,
-]);
+const completedJob = await one(
+  "select status, progress_percent, locked_by from public.processing_jobs where id = $1",
+  [claimed2.id],
+);
 check(
   "completion records 100 percent and clears the lease",
   completedJob.status === "completed" &&
@@ -731,7 +821,11 @@ check(
 const renderedProject = await one("select status from public.projects where id = $1", [
   workerProject3,
 ]);
-check("finishing the render completes the project", renderedProject.status === "completed", renderedProject);
+check(
+  "finishing the render completes the project",
+  renderedProject.status === "completed",
+  renderedProject,
+);
 
 // Expired leases are reclaimed by another worker.
 const workerProject4 = "11111111-2222-4333-8444-555555555555";
@@ -740,9 +834,10 @@ await one(
   [userF, workerProject4],
 );
 const claimed4 = await one("select * from public.claim_next_job('worker-a', 300)");
-await db.query("update public.processing_jobs set lease_expires_at = now() - interval '1 minute' where id = $1", [
-  claimed4.id,
-]);
+await db.query(
+  "update public.processing_jobs set lease_expires_at = now() - interval '1 minute' where id = $1",
+  [claimed4.id],
+);
 const reclaimed = await one("select * from public.claim_next_job('worker-b', 300)");
 check(
   "an expired lease is reclaimed by another worker",
@@ -770,13 +865,22 @@ const captionDefault = await one(
   "select column_default from information_schema.columns where table_schema = 'public' and table_name = 'clips' and column_name = 'caption_style'",
 );
 
-check("authenticated users cannot start checkouts directly", authenticatedCheckout.can === false, authenticatedCheckout);
+check(
+  "authenticated users cannot start checkouts directly",
+  authenticatedCheckout.can === false,
+  authenticatedCheckout,
+);
 check("the service role can start checkouts", serviceCheckout.can === true, serviceCheckout);
-check("authenticated users cannot claim webhooks", authenticatedWebhook.can === false, authenticatedWebhook);
+check(
+  "authenticated users cannot claim webhooks",
+  authenticatedWebhook.can === false,
+  authenticatedWebhook,
+);
 check("the service role can claim webhooks", serviceWebhook.can === true, serviceWebhook);
 check(
   "the caption default uses the current ice colour",
-  typeof captionDefault.column_default === "string" && captionDefault.column_default.includes("#9BE7FF"),
+  typeof captionDefault.column_default === "string" &&
+    captionDefault.column_default.includes("#9BE7FF"),
   captionDefault.column_default,
 );
 
