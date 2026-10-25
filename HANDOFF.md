@@ -22,7 +22,9 @@ record new evidence before claiming anything works.
 
 ClipMax turns one long horizontal video into vertical 9:16 clips with burned word-level captions.
 The code is complete through Supabase auth, direct-to-R2 uploads, the real FFmpeg worker, credits,
-Razorpay billing, legal pages, and a GitHub Pages design preview. It has **not** run against hosted
-services because this checkout has no credentials. The landing page design is **not final**: six
-directions are on the board and one must be chosen before Track B starts. The immediate critical
-path is credentials → migrations → a real upload → a real render → a real test checkout.
+Razorpay billing, legal pages, and a GitHub Pages design preview. **Hosted Supabase is live and
+proven** (project `eerqogsjvoswkqhhnhld`): six migrations, 28 functions, the auth trigger, RLS, and
+the 30-credit signup grant. R2 and Razorpay keys are still missing, so the upload → render → payment
+path is unproven. The design is **not final**: six directions are on the board, four are full pages
+in `/lab`, and one must be chosen before Track B starts. The critical path is now R2 credentials →
+a real upload → a real render → a real test checkout.

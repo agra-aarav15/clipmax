@@ -55,14 +55,18 @@ Verified locally without hosted credentials:
 - `/api/health` reports real readiness: 503 with `ready: false` when Supabase/R2 are missing, 200
   only when the core integrations are configured. `/api/cron/renew-free-credits` rejects missing or
   wrong `CRON_SECRET` values.
+- **Hosted Supabase is live** (project `eerqogsjvoswkqhhnhld`): all six migrations applied, 28
+  functions, the auth-user trigger, and 8 RLS policies. An Admin-API user creation produced a
+  profile, a 30-credit wallet, and a `grant_signup` ledger row; anon REST reads of `profiles`
+  returned `[]`. QA users were removed afterwards.
 - The GitHub Pages build serves the real landing at 1440 and 390 px with no horizontal overflow,
   console errors, or failed requests. `/signup` and `/dashboard` there are preview-boundary pages,
   not mock product screens.
 
-Not verified in this checkout because no `.env` credentials exist: hosted Supabase auth, a real
-R2 upload/signing round trip, real transcription, Razorpay test checkout/webhook delivery, and
-deployment. Those are integration checks for the founder's keys, not missing code paths. Follow
-[docs/runbook.md](docs/runbook.md) for the credential-backed pass.
+Still unverified because R2 and Razorpay keys are not configured: a real upload/signing round trip,
+real transcription/render, Razorpay test checkout and webhook delivery, and deployment. The
+Supabase half is proven; the browser magic-link callback still needs the hosted Site URL set to
+`http://localhost:3200`. Follow [docs/runbook.md](docs/runbook.md) for the credential-backed pass.
 
 ## Stack
 

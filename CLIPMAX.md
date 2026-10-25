@@ -29,9 +29,10 @@ record new evidence in §8 before claiming anything works.
 
 **Where the work actually stands:** the product is **code-complete** through auth, direct-to-R2
 upload, the real FFmpeg worker, credits, billing, legal pages, and a GitHub Pages design preview.
-It is **not yet proven against hosted services** because this checkout has no credentials. The
-design is **not final**: six directions are presented on the direction board and one must be
-chosen before the landing page is rebuilt again.
+**Hosted Supabase is now live and proven** (schema, triggers, RLS, signup credits). R2 and Razorpay
+credentials are still missing, so the upload → render → payment path is not yet proven. The design
+is **not final**: six directions are presented on the board and four exist as full pages in `/lab`;
+one must be chosen before the landing page is rebuilt.
 
 ---
 
@@ -114,6 +115,10 @@ Do not blend three.
 
 ### 3.2 Implemented and committed (code-complete)
 
+- **Hosted Supabase is live**: project `eerqogsjvoswkqhhnhld` (Tokyo), all six migrations applied,
+  28 public functions, the auth-user trigger, 8 RLS policies, and the six migration versions
+  recorded in `supabase_migrations.schema_migrations`. Local web credentials are in
+  `apps/web/.env.local` (ignored by git). R2 and Razorpay credentials are still absent.
 - Monorepo (`apps/web`, `apps/worker`, `apps/site`, `packages/shared`, `supabase`, `scripts`), CI,
   Turbo, shared contracts, ESLint/Prettier/TypeScript, Python `uv` + ruff + mypy.
 - Postgres schema with RLS, profiles, projects, jobs, clips, wallets, append-only ledger,
@@ -146,14 +151,24 @@ Do not blend three.
 - SQL: all six migrations apply to PostgreSQL 18 (PGlite with stubbed Supabase auth) plus 100
   executable checks (grant once, renewal, RLS isolation, reserve/settle/refund idempotency, webhook
   claim/retry, checkout serialization, worker lease reclaim).
-- Pages: the real landing page and direction board build statically under `/clipmax`, no console
-  errors, no horizontal overflow at 390 and 1440.
+- Pages: the real landing page, direction board, design lab, and four concepts build statically
+  under `/clipmax`, no console errors, no horizontal overflow at 390 and 1440.
+- Hosted Supabase (25 Oct 2026): six migrations applied; 28 functions, 7 triggers (including
+  `on_auth_user_created`), and 8 RLS policies exist. Creating a user through the Admin API created
+  a `profiles` row, a `credit_wallets` row with 30 credits, and a `grant_signup` ledger entry.
+  Anonymous REST requests to `profiles` returned `[]`; the service role saw the row. Both QA users
+  were deleted and the cascade removed their profile, wallet, and ledger rows.
+- `/api/health` against the hosted project returns `supabase: true`, `cron: true`, `r2: false`,
+  `billing: false`, status 503. That is the correct configured/incomplete state.
 
 ### 3.4 Not verified / blocked
 
-- **No credentials in this checkout.** No `.env`, no `apps/web/.env.local`, no `apps/worker/.env`.
-  Hosted Supabase migrations/auth, R2 signing/upload, real transcription, Razorpay test webhook,
-  and a real end-to-end project have never run.
+- **R2 and Razorpay are still unconfigured.** No `apps/worker/.env`, no R2 keys, no Razorpay keys.
+  Upload signing, real transcription, a real render, and a test checkout cannot run until they
+  exist. Supabase hosted auth is now proven at the API/DB level (see §3.3).
+- The browser magic-link callback has not been exercised because the hosted project's Site URL
+  still points at `localhost:3000`; the app runs on `localhost:3200`. Set the Site URL and allowed
+  redirect URL in Supabase before testing the full sign-in flow.
 - No domain/DNS, no confirmed production host, no deployed worker VM.
 - No real sample renders, which the Gallery direction (and credible screenshots) require.
 - No transactional email provider, no error monitoring, no pgTAP, no analytics.
@@ -237,6 +252,14 @@ commit either file.** Only `NEXT_PUBLIC_*` reaches the browser; never prefix a s
 `WORKER_CONCURRENCY`, `MAX_SOURCE_DURATION_SECONDS`, `MAX_SOURCE_BYTES`, `FFMPEG_*`, `RENDER_*`,
 `LOG_LEVEL`, optional `SOURCE_COOKIES_FILE`.
 
+**Hosted Supabase (live):** project ref `eerqogsjvoswkqhhnhld`, region `ap-northeast-1`, URL
+`https://eerqogsjvoswkqhhnhld.supabase.co`. Six migrations applied and recorded in
+`supabase_migrations.schema_migrations`. `apps/web/.env.local` holds the project URL, anon key,
+service-role key, and a local `CRON_SECRET`; the file is gitignored. The service-role key is used
+only by server routes. The hosted Site URL must be changed from `http://localhost:3000` to
+`http://localhost:3200`, and `http://localhost:3200/auth/callback` allowlisted, before the browser
+magic-link flow can be tested.
+
 **Only the founder can do these:** create/own the Supabase project and R2 bucket, complete Razorpay
 KYC, buy and point the domain, and approve Google OAuth branding. The founder's Google account is
 `officialclipmax@gmail.com`; **never store its password in the repo, this file, a chat, or a
@@ -281,6 +304,9 @@ Three tracks run in this order of priority:
 
 ### Track A — prove the product (founder + agent)
 
+**Status 25 Oct:** A1–A4 done against hosted Supabase. A5 blocked by R2. A6 blocked by Razorpay.
+A7's cron secret is set locally. A8 is being recorded as evidence lands.
+
 | ID  | Task                                  | Acceptance                                                                                              | Owner   |
 | --- | ------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------- |
 | A1  | Create Supabase project + R2 bucket    | Project URL, anon key, service role key, bucket, R2 token exist; bucket is private; CORS set for app origins | Founder |
@@ -296,7 +322,7 @@ Three tracks run in this order of priority:
 
 | ID  | Task                     | Acceptance                                                                                              |
 | --- | ------------------------ | ------------------------------------------------------------------------------------------------------- |
-| B1  | Lock the direction       | §2 updated; `DESIGN.md` rewritten for the chosen palette, type, motion, and components                   |
+| B1  | Lock the direction       | §2 updated; `DESIGN.md` rewritten for the chosen palette, type, motion, and components; the winning `/lab` page becomes the base |
 | B2  | Tokens and primitives    | `globals.css` tokens, focus ring, grain, buttons, inputs, cards, badges, dialogs match the direction     |
 | B3  | Landing hero             | Headline, intake (link + upload), proof strip, and one signature moment at 1440×1000 and 390×844         |
 | B4  | Landing body             | Product evidence, workflow, system/trust, pricing, final CTA; one idea per screen; no fake metrics        |
@@ -377,6 +403,11 @@ $env:MSYS_NO_PATHCONV='1'; $env:PAGES_BASE_PATH='/clipmax'; pnpm --filter @clipm
 | 25 Oct 26  | Worker tests, lint, strict types                           | 26 pytest passed; ruff clean; mypy no issues (11 files)         |
 | 25 Oct 26  | Static site and direction board export                     | `build:pages` for `/clipmax`, 6 routes, no errors               |
 | 25 Oct 26  | Direction board has no horizontal overflow at 390 / 1440   | Browser measurement: `scrollWidth <= innerWidth`                |
+| 25 Oct 26  | Four lab concepts have no horizontal overflow at 390        | Browser measurement on all four routes                          |
+| 25 Oct 26  | Hosted Supabase schema, triggers, and RLS                  | 6 migrations, 28 functions, `on_auth_user_created`, 8 policies   |
+| 25 Oct 26  | Signup grant fires on hosted auth                          | Admin-created user → profile + 30-credit wallet + ledger row    |
+| 25 Oct 26  | RLS hides other tenants from anon                          | Anon REST `profiles` returned `[]`; service role saw the row     |
+| 25 Oct 26  | Web reaches hosted Supabase                                | `/api/health` → `supabase:true`, 503 because R2/billing missing  |
 | 24 Oct 26  | Six migrations apply + 100 SQL checks                      | `pnpm db:verify` (PGlite, stubbed auth) — 100 checks passed     |
 | 24 Oct 26  | Synthetic 1080×1920 render with burned captions            | ffmpeg + ffprobe on a generated source                          |
 | 23 Oct 26  | Razorpay HMAC valid/tampered cases                         | Local verification tests                                        |
@@ -442,7 +473,10 @@ Add a row here every time a hosted claim becomes true. A claim without a row is 
 ## 12. Immediate next actions (in order)
 
 1. **Founder:** walk the four pages in `/lab`, pick one name, and say it. (Default: Reel One.)
-2. **Founder:** create the Supabase project and R2 bucket, then put the keys in the two env files.
-3. **Agent:** run Track A A2–A8 the moment the env files exist; record evidence in §8.
-4. **Agent:** when the direction is named, execute B1–B10 without waiting for Track A to finish.
-5. **Both:** keep this file current; it is the handoff.
+2. **Founder:** create a Cloudflare R2 bucket and token, then put the values in `apps/worker/.env`
+   and `apps/web/.env.local`; add Razorpay **test** keys when ready. Supabase is done.
+3. **Agent:** set the Supabase Site URL to `http://localhost:3200` and allow
+   `http://localhost:3200/auth/callback`, then prove the browser sign-in flow.
+4. **Agent:** with R2 present, run A5 (real upload → real render); with Razorpay present, run A6.
+5. **Agent:** when the direction is named, execute B1–B10 without waiting for Track A to finish.
+6. **Both:** keep this file current; it is the handoff.
