@@ -7,6 +7,15 @@ direct uploads, and a native Python/FFmpeg worker. The web app runs on Node via 
 in a `uv` virtual environment and calls the system FFmpeg binary. Local development connects straight
 to hosted Supabase and R2, so both services run natively on the developer's machine.
 
+## Live design preview
+
+[Open the static design preview](https://aarav.runs-on.dev/clipmax/) (source: [apps/site](apps/site)).
+
+GitHub Pages serves the real landing page from `apps/site` under `/clipmax`. This is a design
+preview, not the working studio: sign-in, uploads, processing, and billing live in the full Next.js
+app and need hosted Supabase, R2, worker, and Razorpay credentials. The preview routes state that
+boundary instead of showing fake data.
+
 ## Status
 
 | Phase | Scope                                               | State                                                                                       |
@@ -17,7 +26,7 @@ to hosted Supabase and R2, so both services run natively on the developer's mach
 | 4     | Worker pipeline: transcribe → highlights → render   | **Code complete** (needs FFmpeg + AI provider)                                              |
 | 5     | Frontend: dashboard, upload, results, review        | **Code complete** (no full NLE, by design)                                                  |
 | 6     | Razorpay webhook + credit enforcement               | **Code complete** (needs test/live Razorpay keys)                                           |
-| 7     | Hardening, deploy, launch                           | **In progress** — rate limits, renewal, runbook done; deploy needs credentials and a domain |
+| 7     | Hardening, deploy, launch                           | **In progress** — static preview live; production needs credentials and a domain            |
 
 There is no mock data anywhere in this repository. Missing credentials produce a specific
 configuration state, never a fake success. The studio now has real project rows, signed clip

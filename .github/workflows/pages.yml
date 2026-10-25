@@ -38,7 +38,7 @@ jobs:
         run: pnpm --filter @clipmax/site build:pages
         env:
           PAGES_BASE_PATH: /clipmax
-          NEXT_PUBLIC_APP_URL: https://agra-aarav15.github.io/clipmax
+          NEXT_PUBLIC_APP_URL: https://aarav.runs-on.dev/clipmax
           NEXT_TELEMETRY_DISABLED: "1"
 
       - uses: actions/configure-pages@v5

@@ -36,7 +36,9 @@ class CaptionWord:
 
 
 def _run(args: Sequence[str], *, timeout: int, cwd: Path | None = None) -> str:
-    creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+    # CREATE_NO_WINDOW exists only on Windows; getattr keeps the module importable
+    # and type-checkable on Linux CI while still hiding console windows in dev.
+    creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
     try:
         completed = subprocess.run(
             list(args),
