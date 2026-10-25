@@ -76,13 +76,14 @@ Long-form horizontal video in, vertical 9:16 captioned clips out.
 ### Verified locally (no hosted credentials)
 
 - Web typecheck, lint, and production build pass.
-- Worker pytest (11), ruff, and mypy --strict pass.
+- Worker pytest (26), ruff, and mypy --strict pass.
 - Synthetic source renders 1080×1920 H.264/AAC with burned ASS captions; ffprobe confirms it.
 - Razorpay HMAC verification passes valid and tamper-negative cases.
-- All five migrations apply to PostgreSQL 18 (PGlite with stubbed Supabase auth) and an executable
-  check proves: signup grant once, monthly renewal once and not in the signup month, starter
+- All six migrations apply to PostgreSQL 18 (PGlite with stubbed Supabase auth) and 100 executable
+  checks prove: signup grant once, monthly renewal once and not in the signup month, starter
   accounts skipped, rate limiter allows/blocked with a bounded retry, RLS hides the other tenant,
-  and reserve/refund settle idempotently.
+  reserve/settle/refund idempotency, checkout serialization, webhook claim/complete/retry,
+  ordered subscription events, and worker ownership/lease reclaim.
 - `/api/health` returns 503 `ready:false` without credentials and 200 only when Supabase and R2 are
   configured. The cron route rejects a missing secret (503) and the limiter fails open with a log
   when its migration is absent.
@@ -98,17 +99,18 @@ Long-form horizontal video in, vertical 9:16 captioned clips out.
   host; choose one before provisioning.
 - No pgTAP suite or Sentry. `pnpm db:verify` runs the migrations plus RLS/credit checks in CI, but
   it is not pgTAP and does not use the hosted project.
-- No privacy policy, terms, refund policy, or monitored support inbox. Razorpay live KYC needs them;
-  the signup copy now says only “use content you have the rights to process” rather than claiming
-  agreement to documents that do not exist.
+- Privacy, terms, refund, support, and status pages exist and are linked from the landing, footer,
+  and signup. Support routes to GitHub Issues; the status page reports credential presence and a
+  live worker probe, not invented uptime. A monitored support inbox still requires `SUPPORT_EMAIL`.
+  Razorpay live KYC also needs the business details filled into those pages.
 - Center crop only; no face tracking. Do not claim face tracking in copy.
 - Full NLE editor, teams, auto-posting, and marketplace remain non-goals.
 
 ## Locked decisions (23 Oct 2026)
 
-- **Palette:** cobalt `#0047AB` + ice `#89CFF0`. Cobalt is `bg-primary`; ice is `text-signal`,
-  `border-signal`, `bg-signal`, and the focus ring. Lime is removed. Do not use cobalt for small
-  text on dark (2.36:1).
+- **Palette:** electric cobalt `#155EEF` + ice `#9BE7FF`. Cobalt is `bg-primary`; ice is
+  `text-signal`, `border-signal`, `bg-signal`, and the focus ring. Lime is removed. White on cobalt
+  passes AA for normal text; ice is for accents, not white text.
 - **Auth:** Supabase Auth (email magic link + Google), native RLS.
 - **Hosting:** full Next.js app on Vercel or Cloudflare with one custom domain. GitHub Pages cannot
   host `/auth/callback`, API routes, or webhooks. Domain/DNS is still open.
@@ -127,7 +129,7 @@ Long-form horizontal video in, vertical 9:16 captioned clips out.
 
 1. **Create the hosted Supabase project and R2 bucket**, then copy `.env.example` to `.env` and
    `apps/web/.env.example` to `apps/web/.env.local`. Never commit either file.
-2. Run `pnpm db:verify`, then apply all five migrations in `supabase/migrations` in date order with
+2. Run `pnpm db:verify`, then apply all six migrations in `supabase/migrations` in date order with
    `pnpm db:push`. Set the Supabase redirect URLs for `/auth/callback`, add the R2 CORS rule, and
    run the real smoke pass: signup → upload → worker → clip → download.
 3. Configure a Razorpay **test** plan and webhook (`/api/webhooks/razorpay`). Test one checkout,
@@ -163,6 +165,14 @@ Long-form horizontal video in, vertical 9:16 captioned clips out.
 - `apps/web/src/app/api/cron/renew-free-credits/route.ts` — protected monthly grant.
 - `supabase/migrations/20261024190000_rate_limits.sql` — fixed-window limiter.
 - `supabase/migrations/20261024191000_free_plan_renewal.sql` — idempotent free grant.
+- `supabase/migrations/20261025120000_hardening.sql` — atomic project/retry RPCs, checkout
+  serialization, ordered subscription events, webhook claim/retry, and worker ownership checks.
+- `apps/web/src/components/layout/app-shell.tsx` — fixed studio shell, credit meter, mobile menu.
+- `apps/web/src/app/(app)/dashboard/settings/page.tsx` — profile, export, and account deletion.
+- `apps/web/src/app/(app)/dashboard/billing/ledger/page.tsx` — full credit ledger and CSV export.
+- `apps/web/src/app/privacy|terms|refund|support|status/page.tsx` — public legal and status
+  surfaces, sharing `components/site/public-page.tsx`.
+- `apps/web/src/app/api/webhooks/razorpay/route.ts` — bounded body, claim-before-side-effects.
 - `docs/runbook.md` — the credential-backed deployment procedure and rollback table.
 - `docs/architecture.md` — architecture contract; update as decisions land.
 

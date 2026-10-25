@@ -1,4 +1,5 @@
 import {
+  JOB_TYPE_LABELS,
   MAX_SOURCE_DURATION_MINUTES,
   PIPELINE_STEPS,
   PROJECT_STATUS_LABELS,
@@ -12,14 +13,16 @@ import {
 import {
   AlertTriangleIcon,
   ArrowLeftIcon,
+  ArrowUpRightIcon,
   CaptionsIcon,
   CheckIcon,
   CircleIcon,
-  Clock3Icon,
   FileVideoIcon,
+  FilmIcon,
   Loader2Icon,
-  SettingsIcon,
+  ShieldCheckIcon,
   SparklesIcon,
+  WalletIcon,
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -32,7 +35,6 @@ import { ProjectPoller } from "@/components/studio/project-poller";
 import { ProjectStatusBadge } from "@/components/studio/status-badge";
 import { RetryProjectButton } from "@/components/studio/retry-project-button";
 import { StudioConfigurationState } from "@/components/studio/configuration-state";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatBytes, formatDate, formatDateTime, formatTimecode } from "@/lib/format";
 import { isUuid } from "@/lib/ids";
 import { isR2Configured, presignGet } from "@/lib/r2";
@@ -168,51 +170,57 @@ function stepLabels(sourceType: ProjectSourceType) {
   });
 }
 
-function StepIcon({ state }: { state: "done" | "active" | "pending" | "failed" }) {
+type StepState = "done" | "active" | "pending" | "failed";
+
+function stepStateFor(index: number, current: number, project: ProjectRow): StepState {
+  if (project.status === "failed" && index === current) return "failed";
+  if (project.status === "completed" || index < current) return "done";
+  if (project.status !== "failed" && index === current) return "active";
+  return "pending";
+}
+
+function StepIcon({ state }: { state: StepState }) {
   if (state === "done") {
     return (
-      <span className="grid size-6 place-items-center rounded-full border border-signal/40 bg-signal/10 text-signal">
-        <CheckIcon className="size-3.5" />
+      <span className="grid size-5 place-items-center rounded-full border border-signal/35 bg-signal/[0.08] text-signal">
+        <CheckIcon className="size-3" />
       </span>
     );
   }
   if (state === "active") {
     return (
-      <span className="grid size-6 place-items-center rounded-full border border-signal/50 bg-signal/10 text-signal">
-        <Loader2Icon className="size-3.5 animate-spin" />
+      <span className="grid size-5 place-items-center rounded-full border border-signal/45 bg-signal/[0.08] text-signal">
+        <Loader2Icon className="size-3 animate-spin" />
       </span>
     );
   }
   if (state === "failed") {
     return (
-      <span className="grid size-6 place-items-center rounded-full border border-destructive/40 bg-destructive/10 text-destructive">
-        <AlertTriangleIcon className="size-3.5" />
+      <span className="grid size-5 place-items-center rounded-full border border-destructive/40 bg-destructive/10 text-red-300">
+        <AlertTriangleIcon className="size-3" />
       </span>
     );
   }
   return (
-    <span className="grid size-6 place-items-center rounded-full border border-border bg-background text-muted-foreground">
-      <CircleIcon className="size-3" />
+    <span className="grid size-5 place-items-center rounded-full border border-white/[0.09] bg-white/[0.02] text-zinc-600">
+      <CircleIcon className="size-2" />
     </span>
   );
 }
 
-function StepState({
-  index,
-  current,
-  failedIndex,
-  project,
-}: {
-  index: number;
-  current: number;
-  failedIndex: number;
-  project: ProjectRow;
-}) {
-  if (project.status === "failed" && index === failedIndex) return "failed" as const;
-  if (project.status === "completed" || index < current) return "done" as const;
-  if (project.status !== "failed" && index === current) return "active" as const;
-  return "pending" as const;
-}
+const JOB_TONE: Record<JobStatus, string> = {
+  queued: "text-zinc-400",
+  in_progress: "text-signal",
+  completed: "text-signal/80",
+  failed: "text-red-300",
+};
+
+const JOB_LABEL: Record<JobStatus, string> = {
+  queued: "Queued",
+  in_progress: "Running",
+  completed: "Done",
+  failed: "Failed",
+};
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -223,17 +231,19 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
   if (!supabase) {
     return (
-      <div className="mx-auto max-w-6xl space-y-6">
-        <div>
-          <p className="font-mono text-[0.625rem] tracking-[0.2em] text-signal uppercase">Studio</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-            Your studio is not connected.
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Add the Supabase credentials to load a real project. This page never invents clip data.
-          </p>
+      <div className="mx-auto max-w-5xl">
+        <p className="font-mono text-[9px] tracking-[0.2em] text-signal uppercase">
+          Studio / project
+        </p>
+        <h1 className="mt-3 text-[clamp(2rem,4vw,3rem)] leading-none font-semibold tracking-[-0.055em]">
+          The studio is not connected.
+        </h1>
+        <p className="mt-3 max-w-2xl text-[13.5px] leading-relaxed text-zinc-400">
+          Add the Supabase credentials to load a real project. This page never invents clip data.
+        </p>
+        <div className="mt-8">
+          <StudioConfigurationState keys={REQUIRED_STUDIO_KEYS} />
         </div>
-        <StudioConfigurationState keys={REQUIRED_STUDIO_KEYS} />
       </div>
     );
   }
@@ -250,24 +260,21 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
   if (projectError) {
     return (
-      <div className="mx-auto max-w-4xl">
-        <Card className="border-destructive/25 bg-destructive/[0.04]">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <AlertTriangleIcon className="size-4 text-destructive" />
-              <CardTitle>Could not load this project</CardTitle>
-            </div>
-            <CardDescription>{projectError.message}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link
-              href="/dashboard"
-              className="text-sm text-signal underline-offset-4 hover:underline"
-            >
-              Back to the studio
-            </Link>
-          </CardContent>
-        </Card>
+      <div className="mx-auto max-w-3xl">
+        <div className="rounded-2xl border border-destructive/25 bg-destructive/[0.05] px-5 py-5">
+          <div className="flex items-center gap-2">
+            <AlertTriangleIcon className="size-4 text-red-300" />
+            <h1 className="text-[14px] font-medium text-red-100">Could not load this project</h1>
+          </div>
+          <p className="mt-2 text-[12px] leading-relaxed text-red-200/75">{projectError.message}</p>
+          <Link
+            href="/dashboard/projects"
+            className="mt-4 inline-flex items-center gap-1.5 text-[11.5px] text-signal underline-offset-4 hover:underline"
+          >
+            <ArrowLeftIcon className="size-3.5" />
+            Back to projects
+          </Link>
+        </div>
       </div>
     );
   }
@@ -308,7 +315,6 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const active = isActiveProjectStatus(project.status);
   const polling = project.status === "ready" || project.status === "processing";
   const current = currentStepIndex(project, jobs);
-  const failedIndex = current;
   const steps = stepLabels(project.source_type);
   const progress = pipelineProgress(project, jobs);
   const failedJob = [...jobs].reverse().find((job) => job.status === "failed");
@@ -361,58 +367,101 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     project.source_type === "public_url"
       ? "Public link"
       : (project.original_filename ?? project.mime_type ?? "Upload");
+  const sourceHref = project.source_type === "public_url" ? project.source_url : null;
+  const creditLabel =
+    project.status === "completed"
+      ? "Credits charged"
+      : project.status === "failed"
+        ? "Credit hold"
+        : "Credits held";
+  const creditValue =
+    project.status === "failed"
+      ? project.credits_reserved > 0
+        ? `${project.credits_reserved} · refund pending`
+        : "Refunded"
+      : `${project.credits_reserved} cr`;
+
+  const pipelineLabel =
+    project.status === "completed"
+      ? "Complete"
+      : project.status === "failed"
+        ? "Stopped"
+        : PROJECT_STATUS_LABELS[project.status];
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-[1320px]">
       <ProjectPoller active={polling} />
 
-      <nav
-        aria-label="Breadcrumb"
-        className="flex items-center gap-2 text-xs text-muted-foreground"
-      >
+      <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2">
         <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+          href="/dashboard/projects"
+          className="inline-flex shrink-0 items-center gap-1.5 font-mono text-[8.5px] tracking-[0.14em] text-zinc-500 uppercase transition-colors hover:text-zinc-200"
         >
-          <ArrowLeftIcon className="size-3.5" />
-          Studio
+          <ArrowLeftIcon className="size-3" />
+          Projects
         </Link>
-        <span aria-hidden="true">/</span>
-        <span className="truncate text-foreground">{project.title}</span>
+        <span aria-hidden="true" className="text-zinc-700">
+          /
+        </span>
+        <span className="truncate font-mono text-[8.5px] tracking-[0.1em] text-zinc-600 uppercase">
+          {project.id.slice(0, 8)}
+        </span>
       </nav>
 
       <div className="mt-5 flex flex-wrap items-start justify-between gap-5">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{project.title}</h1>
+        <div className="min-w-0 max-w-3xl">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <p className="font-mono text-[9px] tracking-[0.2em] text-signal uppercase">Project</p>
+            <span aria-hidden="true" className="h-3 w-px bg-white/10" />
             <ProjectStatusBadge status={project.status} />
           </div>
-          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[0.6875rem] text-muted-foreground">
+
+          <h1 className="mt-3 text-[clamp(1.75rem,3.4vw,2.85rem)] leading-[1.03] font-semibold tracking-[-0.055em] text-balance">
+            {project.title}
+          </h1>
+
+          <p className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 font-mono text-[8.5px] tracking-[0.08em] text-zinc-500 uppercase">
             <span className="inline-flex items-center gap-1.5">
-              <FileVideoIcon className="size-3.5" />
-              {sourceLabel}
+              <FileVideoIcon className="size-3 text-zinc-600" />
+              {sourceHref ? (
+                <a
+                  href={sourceHref}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex items-center gap-1 text-zinc-400 underline-offset-4 transition-colors hover:text-signal hover:underline"
+                >
+                  {sourceLabel}
+                  <ArrowUpRightIcon className="size-2.5" />
+                </a>
+              ) : (
+                <span className="max-w-[16rem] truncate text-zinc-400">{sourceLabel}</span>
+              )}
             </span>
-            <span aria-hidden="true">·</span>
+            <span aria-hidden="true" className="text-zinc-700">
+              /
+            </span>
             <span>{formatDate(project.created_at)}</span>
-            <span aria-hidden="true">·</span>
-            <span className="inline-flex items-center gap-1.5">
-              <Clock3Icon className="size-3.5" />
-              {duration === null ? "Duration pending" : formatTimecode(duration)}
+            <span aria-hidden="true" className="text-zinc-700">
+              /
             </span>
+            <span>{duration === null ? "Duration pending" : formatTimecode(duration)}</span>
             {project.size_bytes ? (
               <>
-                <span aria-hidden="true">·</span>
+                <span aria-hidden="true" className="text-zinc-700">
+                  /
+                </span>
                 <span>{formatBytes(project.size_bytes)}</span>
               </>
             ) : null}
-            <span aria-hidden="true">·</span>
-            <span>{project.credits_reserved} credits held</span>
+            <span aria-hidden="true" className="text-zinc-700">
+              /
+            </span>
+            <span>{creditValue}</span>
           </p>
         </div>
 
-        <div className="flex flex-col items-start gap-3 sm:items-end">
+        <div className="flex flex-wrap items-start gap-3">
           <DeleteProjectButton projectId={project.id} title={project.title} />
-          {project.status === "failed" ? <RetryProjectButton projectId={project.id} /> : null}
         </div>
       </div>
 
@@ -445,26 +494,28 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       ) : null}
 
       {project.status === "failed" ? (
-        <Card className="mt-6 border-destructive/25 bg-destructive/[0.04]">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <AlertTriangleIcon className="size-4 text-destructive" />
-              <CardTitle>The pipeline stopped</CardTitle>
+        <section className="mt-6 overflow-hidden rounded-2xl border border-destructive/25 bg-destructive/[0.05]">
+          <div className="flex items-start gap-3 px-4 py-4 sm:px-5">
+            <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg border border-destructive/30 bg-destructive/10">
+              <AlertTriangleIcon className="size-3.5 text-red-300" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[13px] font-medium text-red-100">The pipeline stopped</h2>
+              <p className="mt-1 max-w-3xl text-[11.5px] leading-relaxed text-red-200/75">
+                {project.error_message ??
+                  failedJob?.error_message ??
+                  "The worker reported a failure without a message."}
+              </p>
+              <p className="mt-2 text-[10.5px] leading-relaxed text-zinc-500">
+                The credit hold is refunded when a job becomes terminal. A retry starts a fresh
+                reservation, re-probes the source, and replaces the drafts from this attempt.
+              </p>
+              <div className="mt-3">
+                <RetryProjectButton projectId={project.id} />
+              </div>
             </div>
-            <CardDescription>
-              {project.error_message ??
-                failedJob?.error_message ??
-                "The worker reported a failure without a message."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              The credit hold was refunded when the job became terminal. A retry starts a fresh
-              reservation, re-probes the source, and replaces the drafts from this attempt.
-            </p>
-            <RetryProjectButton projectId={project.id} />
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       ) : null}
 
       {project.status === "uploading" ? (
@@ -474,30 +525,121 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         </Banner>
       ) : null}
 
+      <section
+        aria-labelledby="pipeline-title"
+        className="mt-6 overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0a0a0b]"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] px-4 py-3 sm:px-5">
+          <div className="flex items-center gap-2.5">
+            <span
+              aria-hidden="true"
+              className={cn(
+                "size-1.5 rounded-full",
+                project.status === "failed"
+                  ? "bg-red-400"
+                  : project.status === "completed"
+                    ? "bg-signal"
+                    : "animate-pulse bg-signal",
+              )}
+            />
+            <h2
+              id="pipeline-title"
+              className="font-mono text-[8px] tracking-[0.2em] text-zinc-500 uppercase"
+            >
+              Pipeline
+            </h2>
+            <span className="font-mono text-[9px] tracking-[0.1em] text-zinc-400 uppercase">
+              {pipelineLabel}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {polling ? (
+              <span className="inline-flex items-center gap-1.5 font-mono text-[8px] tracking-[0.12em] text-signal uppercase">
+                <Loader2Icon className="size-3 animate-spin" />
+                Live
+              </span>
+            ) : null}
+            <span className="font-mono text-[11px] text-signal tabular">{progress}%</span>
+          </div>
+        </div>
+
+        <ol className="grid gap-px bg-white/[0.05] sm:grid-cols-2 lg:grid-cols-4">
+          {steps.map((step, index) => {
+            const state = stepStateFor(index, current, project);
+            return (
+              <li key={step.key} className="bg-[#0a0a0b] px-4 py-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-[8px] tracking-[0.14em] text-zinc-600">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <StepIcon state={state} />
+                </div>
+                <p
+                  className={cn(
+                    "mt-2 text-[11.5px] font-medium",
+                    state === "pending" && "text-zinc-500",
+                    state === "failed" && "text-red-200",
+                    (state === "done" || state === "active") && "text-zinc-200",
+                  )}
+                >
+                  {step.label}
+                </p>
+                <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-zinc-600">
+                  {step.description}
+                </p>
+              </li>
+            );
+          })}
+        </ol>
+
+        <div className="h-0.5 bg-white/[0.04]">
+          <div
+            className={cn(
+              "h-full transition-[width] duration-700",
+              project.status === "failed" ? "bg-destructive" : "bg-signal/80",
+            )}
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        <p className="px-4 py-2 font-mono text-[8px] tracking-[0.1em] text-zinc-600 uppercase sm:px-5">
+          Derived from the active job&apos;s real progress · it does not advance on its own
+        </p>
+      </section>
+
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div className="min-w-0">
           <section aria-labelledby="clips-title">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="font-mono text-[0.625rem] tracking-[0.2em] text-signal uppercase">
-                  Output
+                <p className="font-mono text-[8px] tracking-[0.2em] text-signal uppercase">
+                  The cuts
                 </p>
-                <h2 id="clips-title" className="mt-1.5 text-xl font-semibold tracking-tight">
+                <h2
+                  id="clips-title"
+                  className="mt-1 text-[19px] font-semibold tracking-[-0.035em]"
+                >
                   {renderedCount > 0
-                    ? `${renderedCount} ${renderedCount === 1 ? "clip" : "clips"} ready`
-                    : "Clips"}
+                    ? `${renderedCount} ${renderedCount === 1 ? "clip" : "clips"} ready to post`
+                    : clipViews.length > 0
+                      ? "Clips in progress"
+                      : "Clips"}
                 </h2>
+                <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
+                  9:16 · burned-in word-level captions · H.264/AAC
+                </p>
               </div>
               {active ? (
-                <span className="inline-flex items-center gap-2 font-mono text-[0.625rem] tracking-[0.1em] text-signal uppercase">
-                  <Loader2Icon className="size-3.5 animate-spin" />
-                  Live from the queue
+                <span className="inline-flex items-center gap-1.5 font-mono text-[8px] tracking-[0.12em] text-signal uppercase">
+                  <Loader2Icon className="size-3 animate-spin" />
+                  Watching the queue
                 </span>
               ) : null}
             </div>
 
             {clipViews.length > 0 ? (
-              <div className="mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {clipViews.map((clip, index) => (
                   <ClipCard
                     key={clip.id}
@@ -508,60 +650,54 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                 ))}
               </div>
             ) : (
-              <Card className="mt-4">
-                <CardContent className="flex flex-col items-center justify-center px-6 py-14 text-center">
-                  <div className="grid size-12 place-items-center rounded-full border border-signal/20 bg-signal/[0.06]">
-                    {project.status === "completed" ? (
-                      <AlertTriangleIcon className="size-5 text-amber-300" />
-                    ) : (
-                      <SparklesIcon className="size-5 text-signal" />
-                    )}
-                  </div>
-                  <p className="mt-4 text-sm font-medium">
-                    {project.status === "completed"
-                      ? "The job completed without published clips."
-                      : project.status === "failed"
-                        ? "No clips survived this attempt."
-                        : "The first clip will land here."}
-                  </p>
-                  <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
-                    {project.status === "completed"
-                      ? "That is a real inconsistency, not an empty sample state. Retry the source or contact support with this project id."
-                      : project.status === "failed"
-                        ? "Retry the project above. The pipeline will replace the drafts from the failed attempt."
-                        : "The worker is reading the source and selecting moments. This page refreshes while the queue is moving."}
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="mt-4 flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.09] bg-white/[0.012] px-6 py-14 text-center">
+                <div className="grid size-12 place-items-center rounded-full border border-signal/20 bg-signal/[0.06]">
+                  {project.status === "completed" ? (
+                    <AlertTriangleIcon className="size-5 text-amber-300" />
+                  ) : (
+                    <SparklesIcon className="size-5 text-signal" />
+                  )}
+                </div>
+                <p className="mt-4 text-[13px] font-medium text-zinc-200">
+                  {project.status === "completed"
+                    ? "The job completed without published clips."
+                    : project.status === "failed"
+                      ? "No clips survived this attempt."
+                      : "The first clip will land here."}
+                </p>
+                <p className="mt-1 max-w-sm text-[11.5px] leading-relaxed text-zinc-500">
+                  {project.status === "completed"
+                    ? "That is a real inconsistency, not an empty sample state. Retry the source or contact support with this project id."
+                    : project.status === "failed"
+                      ? "Retry the project above. The pipeline will replace the drafts from the failed attempt."
+                      : "The worker is reading the source and selecting moments. This page refreshes while the queue is moving."}
+                </p>
+              </div>
             )}
           </section>
 
           {transcript?.text ? (
-            <section
-              id="transcript"
-              aria-labelledby="transcript-title"
-              className="mt-8 scroll-mt-24"
-            >
-              <details className="group rounded-xl border border-border bg-card">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+            <section id="transcript" className="mt-8 scroll-mt-24">
+              <details className="group overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0a0a0b]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-white/[0.02] sm:px-5">
                   <div>
-                    <h2 id="transcript-title" className="text-sm font-medium">
-                      Transcript
-                    </h2>
-                    <p className="mt-0.5 font-mono text-[0.625rem] tracking-[0.08em] text-muted-foreground uppercase">
+                    <h2 className="text-[12.5px] font-medium text-zinc-200">Transcript</h2>
+                    <p className="mt-0.5 font-mono text-[8px] tracking-[0.1em] text-zinc-600 uppercase">
                       {transcript.language ?? "Unknown language"}
                       {transcript.provider ? ` · ${transcript.provider}` : ""}
+                      {" · "}
+                      {transcript.text.length.toLocaleString("en-US")} characters
                     </p>
                   </div>
-                  <span className="font-mono text-[0.625rem] text-muted-foreground group-open:hidden">
+                  <span className="font-mono text-[8px] tracking-[0.12em] text-zinc-500 uppercase group-open:hidden">
                     Open
                   </span>
-                  <span className="hidden font-mono text-[0.625rem] text-muted-foreground group-open:inline">
+                  <span className="hidden font-mono text-[8px] tracking-[0.12em] text-zinc-500 uppercase group-open:inline">
                     Close
                   </span>
                 </summary>
-                <div className="max-h-96 overflow-y-auto border-t border-border/70 px-5 py-4">
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
+                <div className="max-h-[28rem] overflow-y-auto border-t border-white/[0.06] px-4 py-4 sm:px-5">
+                  <p className="text-[12.5px] leading-[1.8] whitespace-pre-wrap text-zinc-400">
                     {transcript.text}
                   </p>
                 </div>
@@ -571,127 +707,102 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         </div>
 
         <aside className="min-w-0 space-y-4 lg:sticky lg:top-24">
-          <Card className="gap-0 overflow-hidden py-0">
-            <CardHeader className="border-b border-border/70 py-4">
-              <CardTitle className="text-sm">Pipeline</CardTitle>
-              <CardDescription className="mt-1 text-xs">
-                Every state below comes from the project and job rows.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="py-4">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-[0.625rem] tracking-[0.12em] text-muted-foreground uppercase">
-                  {project.status === "completed"
-                    ? "Complete"
-                    : project.status === "failed"
-                      ? "Stopped"
-                      : PROJECT_STATUS_LABELS[project.status]}
-                </span>
-                <span className="font-mono text-xs text-signal">{progress}%</span>
-              </div>
-              <div
-                className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.06]"
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={progress}
-                aria-label="Pipeline progress from the job rows"
-              >
-                <div
-                  className={cn(
-                    "h-full rounded-full transition-[width] duration-700",
-                    project.status === "failed" ? "bg-destructive" : "bg-signal",
-                  )}
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <p className="mt-2 text-[0.625rem] leading-relaxed text-muted-foreground">
-                Derived from the active job&apos;s progress. It does not advance on its own.
-              </p>
+          <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0a0a0b]">
+            <div className="border-b border-white/[0.06] px-4 py-3.5">
+              <p className="font-mono text-[8px] tracking-[0.18em] text-zinc-500 uppercase">Record</p>
+              <h2 className="mt-1 text-[12.5px] font-medium text-zinc-200">Source & credits</h2>
+            </div>
+            <dl className="space-y-2.5 px-4 py-4">
+              <DetailRow label="Source" value={sourceLabel} />
+              <DetailRow
+                label="Duration"
+                value={duration === null ? "Pending" : formatTimecode(duration)}
+              />
+              <DetailRow
+                label="Size"
+                value={project.size_bytes ? formatBytes(project.size_bytes) : "—"}
+              />
+              <DetailRow label={creditLabel} value={creditValue} />
+              <DetailRow label="Max source" value={`${MAX_SOURCE_DURATION_MINUTES} min · 500 MB`} />
+              <DetailRow label="Created" value={formatDateTime(project.created_at)} />
+              <DetailRow label="Updated" value={formatDateTime(project.updated_at)} />
+            </dl>
+          </section>
 
-              <ol className="mt-5 space-y-4">
-                {steps.map((step, index) => {
-                  const state = StepState({ index, current, failedIndex, project });
-                  return (
-                    <li key={step.key} className="flex gap-3">
-                      <div className="flex flex-col items-center">
-                        <StepIcon state={state} />
-                        {index < steps.length - 1 ? (
-                          <span
-                            className={cn(
-                              "mt-1 w-px flex-1",
-                              state === "done" ? "bg-signal/30" : "bg-border",
-                            )}
-                          />
-                        ) : null}
-                      </div>
-                      <div className="min-w-0 pb-1">
-                        <p
-                          className={cn(
-                            "text-xs font-medium",
-                            state === "pending" && "text-muted-foreground",
-                            state === "failed" && "text-destructive",
-                          )}
-                        >
-                          {step.label}
-                        </p>
-                        <p className="mt-0.5 text-[0.6875rem] leading-relaxed text-muted-foreground">
-                          {step.description}
-                        </p>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
-
-              {failedJob?.error_message ? (
-                <p className="mt-4 rounded-md border border-destructive/20 bg-destructive/10 px-2.5 py-2 text-[0.6875rem] leading-relaxed text-destructive">
-                  {failedJob.error_message}
+          <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0a0a0b]">
+            <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] px-4 py-3.5">
+              <div>
+                <p className="font-mono text-[8px] tracking-[0.18em] text-zinc-500 uppercase">
+                  Ledger
                 </p>
-              ) : null}
-
-              <div className="mt-5 space-y-2 border-t border-border/70 pt-4">
-                <DetailRow label="Source" value={sourceLabel} />
-                <DetailRow
-                  label="Max source"
-                  value={`${MAX_SOURCE_DURATION_MINUTES} min · 500 MB`}
-                />
-                <DetailRow label="Updated" value={formatDateTime(project.updated_at)} />
-                {project.status === "processing" && jobs.length > 0 ? (
-                  <DetailRow
-                    label="Last job"
-                    value={
-                      jobs[jobs.length - 1]?.job_type === "render_clip"
-                        ? "Rendering"
-                        : "Transcription"
-                    }
-                  />
-                ) : null}
+                <h2 className="mt-1 text-[12.5px] font-medium text-zinc-200">Job attempts</h2>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="gap-0 overflow-hidden py-0">
-            <CardHeader className="border-b border-border/70 py-4">
-              <CardTitle className="text-sm">Captions</CardTitle>
-              <CardDescription className="mt-1 text-xs">
-                Burned into every rendered frame with FFmpeg and libass.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2 py-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-2">
-                <CaptionsIcon className="size-3.5 text-signal" />
-                Word-level highlight
-              </span>
-              <span className="flex items-center gap-2">
-                <SettingsIcon className="size-3.5 text-signal" />
-                1080 × 1920 · H.264/AAC
-              </span>
-              <p className="pt-2 leading-relaxed">
-                Signed previews expire after 60 minutes. Reload the page for fresh links.
+              <span className="font-mono text-[9px] text-zinc-600">{jobs.length}</span>
+            </div>
+            {jobs.length > 0 ? (
+              <ol className="divide-y divide-white/[0.05]">
+                {jobs.map((job) => (
+                  <li key={job.id} className="flex items-start justify-between gap-3 px-4 py-2.5">
+                    <div className="min-w-0">
+                      <p className="truncate text-[11px] text-zinc-300">
+                        {JOB_TYPE_LABELS[job.job_type]}
+                      </p>
+                      <p className="mt-0.5 font-mono text-[8px] tracking-[0.08em] text-zinc-600 uppercase">
+                        {formatDateTime(job.updated_at)} · {job.attempts}{" "}
+                        {job.attempts === 1 ? "try" : "tries"}
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        "flex shrink-0 items-center gap-1.5 font-mono text-[8px] tracking-[0.1em] uppercase",
+                        JOB_TONE[job.status],
+                      )}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "size-1 rounded-full bg-current",
+                          job.status === "in_progress" && "animate-pulse",
+                        )}
+                      />
+                      {JOB_LABEL[job.status]}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="px-4 py-4 text-[11px] leading-relaxed text-zinc-600">
+                No worker jobs yet. The first job is created when the source is verified.
               </p>
-            </CardContent>
-          </Card>
+            )}
+          </section>
+
+          <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0a0a0b]">
+            <div className="border-b border-white/[0.06] px-4 py-3.5">
+              <p className="font-mono text-[8px] tracking-[0.18em] text-zinc-500 uppercase">
+                Output
+              </p>
+              <h2 className="mt-1 text-[12.5px] font-medium text-zinc-200">Export spec</h2>
+            </div>
+            <div className="space-y-2.5 px-4 py-4 text-[11px] text-zinc-400">
+              <p className="flex items-center gap-2">
+                <CaptionsIcon className="size-3.5 shrink-0 text-signal/80" />
+                Word-level caption highlight
+              </p>
+              <p className="flex items-center gap-2">
+                <FilmIcon className="size-3.5 shrink-0 text-signal/80" />
+                1080 × 1920 · H.264/AAC
+              </p>
+              <p className="flex items-center gap-2">
+                <WalletIcon className="size-3.5 shrink-0 text-signal/80" />
+                Center crop to 9:16 · no face tracking
+              </p>
+              <p className="flex items-start gap-2 border-t border-white/[0.05] pt-2.5 text-[10px] leading-relaxed text-zinc-600">
+                <ShieldCheckIcon className="mt-0.5 size-3.5 shrink-0" />
+                Signed previews expire after 60 minutes. Reload for fresh links.
+              </p>
+            </div>
+          </section>
         </aside>
       </div>
     </div>
@@ -711,10 +822,10 @@ function Banner({
     <div
       role="status"
       className={cn(
-        "mt-6 flex items-start gap-2.5 rounded-lg border px-3 py-2.5 text-xs leading-relaxed",
+        "mt-4 flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-[11.5px] leading-relaxed",
         tone === "danger"
-          ? "border-destructive/25 bg-destructive/10 text-destructive"
-          : "border-amber-300/20 bg-amber-300/[0.04] text-amber-200",
+          ? "border-destructive/25 bg-destructive/[0.07] text-red-200"
+          : "border-amber-300/20 bg-amber-300/[0.04] text-amber-100/90",
       )}
     >
       <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
@@ -729,12 +840,8 @@ function Banner({
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-3">
-      <span className="font-mono text-[0.625rem] tracking-[0.1em] text-muted-foreground uppercase">
-        {label}
-      </span>
-      <span className="max-w-[60%] truncate text-right text-[0.6875rem] text-foreground">
-        {value}
-      </span>
+      <dt className="font-mono text-[8px] tracking-[0.12em] text-zinc-600 uppercase">{label}</dt>
+      <dd className="max-w-[62%] truncate text-right text-[11px] text-zinc-300">{value}</dd>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
 import { requireAdminClient, requireUser } from "@/lib/api/auth";
 import { AppError } from "@/lib/api/errors";
 import { handleRoute, jsonOk } from "@/lib/api/response";
+import { isUuid } from "@/lib/ids";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { headObject } from "@/lib/r2";
 
@@ -25,11 +26,21 @@ type ProjectRow = {
   size_bytes: number | null;
 };
 
+type BeginProcessingResult = {
+  ok: boolean;
+  code?: string;
+  jobId?: string;
+};
+
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   return handleRoute(async () => {
     const { user } = await requireUser();
     const admin = requireAdminClient();
     const { id: projectId } = await params;
+
+    if (!isUuid(projectId)) {
+      throw new AppError("NOT_FOUND", "Project not found.");
+    }
 
     await enforceRateLimit(admin, RATE_LIMITS.initiate, user.id);
 
@@ -41,9 +52,11 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       .maybeSingle<ProjectRow>();
 
     if (projectError) {
-      throw new AppError("INTERNAL_ERROR", "Could not load the project.", {
-        details: projectError.message,
+      console.error("[projects] could not load project for initiation", {
+        code: projectError.code,
+        message: projectError.message,
       });
+      throw new AppError("INTERNAL_ERROR", "Could not load the project. Try again.");
     }
 
     if (!project) {
@@ -74,61 +87,50 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       throw new AppError("UPLOAD_TOO_LARGE", "The uploaded file is larger than the 500 MB limit.");
     }
 
-    const reserveKey = `reserve:${projectId}`;
-    const { data: reserved, error: reserveError } = await admin.rpc("reserve_credits", {
+    // One transaction reserves the credits, records the verified size, marks the project ready,
+    // and queues the transcribe job. There is no compensation chain left to drift out of sync.
+    const { data, error } = await admin.rpc("begin_upload_processing", {
       p_user_id: user.id,
       p_project_id: projectId,
       p_credits: MAX_CREDITS,
-      p_idempotency_key: reserveKey,
+      p_size_bytes: actualSize,
     });
 
-    if (reserveError) {
-      throw new AppError("INTERNAL_ERROR", "Could not reserve credits.", {
-        details: reserveError.message,
+    if (error) {
+      console.error("[projects] begin_upload_processing failed", {
+        code: error.code,
+        message: error.message,
       });
+      throw new AppError("INTERNAL_ERROR", "Could not start processing. No credits were used.");
     }
 
-    if (reserved !== true) {
-      throw new AppError(
-        "INSUFFICIENT_CREDITS",
-        `This source can use up to ${MAX_CREDITS} credits. Add credits or choose a shorter source.`,
-      );
+    const result = data as BeginProcessingResult | null;
+
+    if (!result || typeof result.ok !== "boolean") {
+      console.error("[projects] begin_upload_processing returned an unexpected result", data);
+      throw new AppError("INTERNAL_ERROR", "Could not start processing. No credits were used.");
     }
 
-    const { error: updateError } = await admin
-      .from("projects")
-      .update({ status: "ready", size_bytes: actualSize })
-      .eq("id", projectId)
-      .eq("user_id", user.id);
-
-    if (updateError) {
-      await admin.rpc("refund_project_credits", { p_project_id: projectId });
-      throw new AppError("INTERNAL_ERROR", "Could not start processing.", {
-        details: updateError.message,
-      });
-    }
-
-    const { data: jobId, error: jobError } = await admin.rpc("enqueue_job", {
-      p_project_id: projectId,
-      p_job_type: "transcribe",
-      p_payload: {},
-    });
-
-    if (jobError) {
-      await admin.rpc("refund_project_credits", { p_project_id: projectId });
-      await admin
-        .from("projects")
-        .update({ status: "uploading", error_message: jobError.message })
-        .eq("id", projectId);
-      throw new AppError("INTERNAL_ERROR", "Could not queue the job.", {
-        details: jobError.message,
-      });
+    if (!result.ok) {
+      if (result.code === "insufficient_credits") {
+        throw new AppError(
+          "INSUFFICIENT_CREDITS",
+          `This source can use up to ${MAX_CREDITS} credits. Add credits or choose a shorter source.`,
+        );
+      }
+      if (result.code === "not_found") {
+        throw new AppError("NOT_FOUND", "Project not found.");
+      }
+      if (result.code === "not_ready") {
+        throw new AppError("PROJECT_NOT_READY", "This project cannot be initiated.");
+      }
+      throw new AppError("INTERNAL_ERROR", "Could not start processing. No credits were used.");
     }
 
     const response: InitiateProcessingResponse = {
       projectId,
       status: "ready",
-      jobId: typeof jobId === "string" ? jobId : null,
+      jobId: typeof result.jobId === "string" ? result.jobId : null,
     };
 
     return jsonOk(response);

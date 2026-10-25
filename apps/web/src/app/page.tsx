@@ -1,7 +1,9 @@
 import { ArrowUpRightIcon } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { ClipMaxMark } from "@/components/brand/clipmax-mark";
+import { AccountDeletedNotice } from "@/components/landing/account-deleted-notice";
 import { FinalCta } from "@/components/landing/final-cta";
 import { Hero } from "@/components/landing/hero";
 import { LandingMotion } from "@/components/landing/landing-motion";
@@ -18,10 +20,21 @@ const FOOTER_LINKS = [
   { href: "#pricing", label: "Pricing" },
 ] as const;
 
+const LEGAL_LINKS = [
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
+  { href: "/refund", label: "Refunds" },
+  { href: "/support", label: "Support" },
+  { href: "/status", label: "Status" },
+] as const;
+
 export default function LandingPage() {
   return (
     <div className="min-h-dvh">
       <LandingMotion />
+      <Suspense fallback={null}>
+        <AccountDeletedNotice />
+      </Suspense>
       <SiteHeader />
 
       <main id="main">
@@ -54,24 +67,33 @@ export default function LandingPage() {
                 <a
                   key={link.href}
                   href={link.href}
-                  className="text-xs text-zinc-500 transition-colors hover:text-foreground"
+                  className="flex min-h-8 items-center text-xs text-zinc-500 transition-colors hover:text-foreground"
                 >
                   {link.label}
                 </a>
               ))}
               <Link
                 href="/dashboard"
-                className="flex items-center gap-1 text-xs text-zinc-500 transition-colors hover:text-foreground"
+                className="flex min-h-8 items-center gap-1 text-xs text-zinc-500 transition-colors hover:text-foreground"
               >
                 Studio
                 <ArrowUpRightIcon className="size-3" aria-hidden="true" />
               </Link>
               <Link
                 href="/signup"
-                className="text-xs text-zinc-500 transition-colors hover:text-foreground"
+                className="flex min-h-8 items-center text-xs text-zinc-500 transition-colors hover:text-foreground"
               >
                 Start free
               </Link>
+              {LEGAL_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="flex min-h-8 items-center text-xs text-zinc-600 transition-colors hover:text-zinc-300"
+                >
+                  {link.label}
+                </Link>
+              ))}
             </nav>
 
             <div>

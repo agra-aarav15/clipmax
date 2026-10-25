@@ -49,22 +49,22 @@ export async function POST(request: Request) {
     const storagePath = `sources/${user.id}/${projectId}/source.${extension}`;
     const title = titleFromFilename(parsed.data.fileName);
 
-    const { error: insertError } = await admin.from("projects").insert({
-      id: projectId,
-      user_id: user.id,
-      title,
-      source_type: "upload",
-      storage_path: storagePath,
-      original_filename: parsed.data.fileName,
-      mime_type: parsed.data.fileType,
-      size_bytes: parsed.data.fileSize,
-      status: "uploading",
+    const { error: insertError } = await admin.rpc("create_upload_project", {
+      p_user_id: user.id,
+      p_project_id: projectId,
+      p_title: title,
+      p_storage_path: storagePath,
+      p_original_filename: parsed.data.fileName,
+      p_mime_type: parsed.data.fileType,
+      p_size_bytes: parsed.data.fileSize,
     });
 
     if (insertError) {
-      throw new AppError("INTERNAL_ERROR", "Could not create the project.", {
-        details: insertError.message,
+      console.error("[uploads] create_upload_project failed", {
+        code: insertError.code,
+        message: insertError.message,
       });
+      throw new AppError("INTERNAL_ERROR", "Could not create the upload. Try again.");
     }
 
     try {

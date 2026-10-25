@@ -4,7 +4,7 @@ export default function NotFound() {
   return (
     <main className="relative grid min-h-dvh place-items-center overflow-hidden px-5">
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_45%_at_50%_10%,rgba(0,71,171,0.22),transparent_68%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_45%_at_50%_10%,rgba(21,94,239,0.22),transparent_68%)]" />
         <div className="absolute inset-0 hero-dots opacity-20" />
       </div>
       <div className="relative max-w-md text-center">

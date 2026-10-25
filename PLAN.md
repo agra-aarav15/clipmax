@@ -17,7 +17,7 @@ something a user can click.
 
 | #   | Decision      | Locked choice                                                       | Consequence                                                                                |
 | --- | ------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| D1  | Palette       | **Cobalt `#0047AB` + ice `#89CFF0`**                                | Cobalt is `bg-primary`; ice is `text-signal` and the ring. Lime is removed.                |
+| D1  | Palette       | **Cobalt `#155EEF` + ice `#9BE7FF`**                                | Cobalt is `bg-primary`; ice is `text-signal` and the ring. Lime is removed.                |
 | D2  | Auth          | **Supabase Auth**                                                   | Email magic link + Google; native RLS; one vendor.                                         |
 | D3  | Hosting       | **Full Next.js app on Vercel or Cloudflare with one custom domain** | GitHub Pages cannot run the auth callback, API routes, or webhooks. Domain/DNS still open. |
 | D4  | Payments      | **Razorpay first for India; Stripe adapter later**                  | Test-mode checkout first. youPI-PG is not the launch path.                                 |
@@ -107,8 +107,9 @@ Still blocked or unverified (24 Oct):
 - No pgTAP suite or Sentry. `pnpm db:verify` runs the migrations, RLS cross-tenant isolation, rate
   limiter, renewal idempotency, and credit accounting against PGlite in CI, but it is not pgTAP and
   does not use the hosted project.
-- No privacy policy, terms, refund policy, or monitored support inbox. Razorpay live KYC will require
-  them; the signup copy no longer claims agreement to documents that do not exist.
+- Privacy, terms, refund, support, and status pages exist. Support routes to GitHub Issues and the
+  status page reports credential presence plus a live worker probe. A monitored support inbox still
+  requires `SUPPORT_EMAIL`; Razorpay live KYC also needs the business details filled in.
 - The crop is a center crop, not face-tracked. This is documented and acceptable for v1, but the
   marketing must not claim face tracking.
 - A full editor, teams, auto-posting, and a marketplace remain non-goals.

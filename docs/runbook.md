@@ -106,6 +106,7 @@ some values is safe. Production boot logs missing required groups; `/api/health`
    20261024182000_billing.sql
    20261024190000_rate_limits.sql
    20261024191000_free_plan_renewal.sql
+   20261025120000_hardening.sql
    ```
 
 3. In **Authentication → URL Configuration**:
@@ -122,9 +123,19 @@ some values is safe. Production boot logs missing required groups; `/api/health`
 
    ```sql
    select proname from pg_proc
-   where proname in ('consume_rate_limit', 'renew_free_plan_credits')
+   where proname in (
+     'consume_rate_limit',
+     'renew_free_plan_credits',
+     'begin_checkout',
+     'attach_checkout_subscription',
+     'claim_webhook_event',
+     'apply_subscription_event',
+     'heartbeat_job',
+     'finish_render_job',
+     'fail_job'
+   )
    order by proname;
-   -- expect both rows
+   -- expect all nine rows
    ```
 
 7. Confirm RLS is on for every tenant table:

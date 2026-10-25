@@ -19,6 +19,13 @@ from clipmax_worker.config import Settings
 
 logger = logging.getLogger(__name__)
 
+# The product promise is 3-5 clips. A provider that ignores the prompt must not turn one upload
+# into dozens of renders, so the parser enforces the same ceiling as the prompt.
+MAX_CLIPS = 5
+MIN_CLIP_SECONDS = 20.0
+MAX_CLIP_SECONDS = 60.0
+MAX_RAW_CANDIDATES = MAX_CLIPS * 4
+
 
 class HighlightError(RuntimeError):
     """A malformed or unusable highlight response."""
@@ -41,6 +48,9 @@ def detect_highlights(
     duration_seconds: float,
 ) -> list[ClipCandidate]:
     if not segments:
+        return []
+
+    if duration_seconds <= 0:
         return []
 
     api_key = settings.llm_api_key or settings.openai_api_key or settings.groq_api_key
@@ -120,6 +130,24 @@ def _request_llm_clips(
     if not isinstance(raw_clips, list):
         raise HighlightError("Highlight response has no clips array.")
 
+    if len(raw_clips) > MAX_RAW_CANDIDATES:
+        logger.warning(
+            "highlight provider returned %d candidates; considering the first %d",
+            len(raw_clips),
+            MAX_RAW_CANDIDATES,
+        )
+        raw_clips = raw_clips[:MAX_RAW_CANDIDATES]
+
+    return _parse_candidates(raw_clips, duration_seconds)
+
+
+def _parse_candidates(
+    raw_clips: list[Any],
+    duration_seconds: float,
+) -> list[ClipCandidate]:
+    minimum_duration = min(MIN_CLIP_SECONDS, duration_seconds)
+    maximum_duration = min(MAX_CLIP_SECONDS, duration_seconds)
+
     clips: list[ClipCandidate] = []
     for item in raw_clips:
         if not isinstance(item, dict):
@@ -128,9 +156,11 @@ def _request_llm_clips(
         end = _safe_float(item.get("end"))
         if start is None or end is None:
             continue
-        start = max(0.0, min(start, duration_seconds))
-        end = max(0.0, min(end, duration_seconds))
-        if end - start < 12.0:
+        if start < 0 or start >= duration_seconds:
+            continue
+        end = min(end, duration_seconds)
+        length = end - start
+        if length < minimum_duration or length > maximum_duration + 0.001:
             continue
         title = str(item.get("title") or "").strip()[:120] or "Untitled clip"
         hook = str(item.get("hook") or "").strip()[:140]
@@ -147,7 +177,7 @@ def _request_llm_clips(
             )
         )
 
-    return _non_overlapping(clips)
+    return _select_non_overlapping(clips)
 
 
 def _format_transcript(segments: list[dict[str, Any]]) -> str:
@@ -229,13 +259,20 @@ def fallback_highlights(
     ]
 
 
-def _non_overlapping(clips: list[ClipCandidate]) -> list[ClipCandidate]:
-    result: list[ClipCandidate] = []
-    for clip in sorted(clips, key=lambda item: item.start):
-        if result and clip.start < result[-1].end:
+def _select_non_overlapping(clips: list[ClipCandidate]) -> list[ClipCandidate]:
+    """Keeps the highest-scoring candidates, then returns them in chronological order.
+
+    A provider sometimes returns overlapping alternates. Picking the earliest one would silently
+    discard the better clip, so score decides first and the time order is only for presentation.
+    """
+    selected: list[ClipCandidate] = []
+    for clip in sorted(clips, key=lambda item: (-item.virality_score, item.start)):
+        if any(clip.start < chosen.end and clip.end > chosen.start for chosen in selected):
             continue
-        result.append(clip)
-    return result
+        selected.append(clip)
+        if len(selected) >= MAX_CLIPS:
+            break
+    return sorted(selected, key=lambda item: item.start)
 
 
 def _text_between(segments: list[dict[str, Any]], start: float, end: float) -> str:

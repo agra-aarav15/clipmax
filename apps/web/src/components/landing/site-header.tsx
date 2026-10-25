@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { ArrowUpRightIcon, MenuIcon, XIcon } from "lucide-react";
 import Link from "next/link";
@@ -94,7 +94,7 @@ export function SiteHeader() {
 
           <Link
             href="/signup"
-            className="group inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-[12px] font-semibold text-primary-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.05),0_10px_40px_-16px_rgba(0,71,171,0.65)] transition-[filter,transform] hover:brightness-105 active:scale-[0.99] sm:px-4"
+            className="group inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-[12px] font-semibold text-primary-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.05),0_10px_40px_-16px_rgba(21,94,239,0.65)] transition-[filter,transform] hover:brightness-105 active:scale-[0.99] sm:px-4"
           >
             <span className="hidden sm:inline">Start free</span>
             <span className="sm:hidden">Start</span>

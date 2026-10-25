@@ -13,14 +13,17 @@ import {
 } from "@clipmax/shared";
 import {
   AlertCircleIcon,
+  ArrowRightIcon,
   CheckCircle2Icon,
   FileVideoIcon,
-  LinkIcon,
+  Link2Icon,
   Loader2Icon,
+  ShieldCheckIcon,
   UploadCloudIcon,
+  XIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRef, useState, type DragEvent } from "react";
+import { useId, useRef, useState, type DragEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,9 +64,11 @@ function putWithProgress(
   file: File,
   headers: Record<string, string>,
   onProgress: (percent: number) => void,
+  onXhr: (xhr: XMLHttpRequest) => void,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    onXhr(xhr);
     xhr.open("PUT", url);
 
     for (const [key, value] of Object.entries(headers)) {
@@ -85,17 +90,35 @@ function putWithProgress(
       reject(new Error(`Storage rejected the upload (${xhr.status}). ${detail}`.trim()));
     };
     xhr.onerror = () => reject(new Error("Network error while uploading. Check your connection."));
-    xhr.onabort = () => reject(new Error("Upload cancelled."));
+    xhr.onabort = () => reject(new Error("Upload cancelled. No credits were charged."));
     xhr.send(file);
   });
 }
 
-export function UploadPanel({ configured }: { configured: boolean }) {
+const PHASE_LABEL: Record<Exclude<Phase, "idle" | "error" | "queued">, string> = {
+  presigning: "Signing a private upload URL",
+  uploading: "Uploading directly to Cloudflare R2",
+  initiating: "Verifying the object and holding credits",
+};
+
+export function UploadPanel({
+  configured,
+  initialLink = "",
+  initialMode = "upload",
+  uploadIntent = false,
+}: {
+  configured: boolean;
+  initialLink?: string;
+  initialMode?: Mode;
+  uploadIntent?: boolean;
+}) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [mode, setMode] = useState<Mode>("upload");
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
+  const errorId = useId();
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [file, setFile] = useState<File | null>(null);
-  const [link, setLink] = useState("");
+  const [link, setLink] = useState(initialLink);
   const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
@@ -103,6 +126,10 @@ export function UploadPanel({ configured }: { configured: boolean }) {
   const [dragOver, setDragOver] = useState(false);
 
   const busy = phase === "presigning" || phase === "uploading" || phase === "initiating";
+  const progressLabel =
+    phase === "presigning" || phase === "uploading" || phase === "initiating"
+      ? PHASE_LABEL[phase]
+      : "Queued for the worker";
 
   function resetState() {
     setPhase("idle");
@@ -166,7 +193,15 @@ export function UploadPanel({ configured }: { configured: boolean }) {
       const presign = (await presignResponse.json()) as PresignResponse;
 
       setPhase("uploading");
-      await putWithProgress(presign.uploadUrl, file, presign.headers, setProgress);
+      await putWithProgress(
+        presign.uploadUrl,
+        file,
+        presign.headers,
+        setProgress,
+        (xhr) => {
+          xhrRef.current = xhr;
+        },
+      );
 
       setPhase("initiating");
       const initiateResponse = await fetch(`/api/projects/${presign.projectId}/initiate`, {
@@ -187,6 +222,8 @@ export function UploadPanel({ configured }: { configured: boolean }) {
     } catch (uploadError) {
       setPhase("error");
       setError(uploadError instanceof Error ? uploadError.message : "The upload failed.");
+    } finally {
+      xhrRef.current = null;
     }
   }
 
@@ -232,217 +269,281 @@ export function UploadPanel({ configured }: { configured: boolean }) {
     <section
       id="new-project"
       aria-labelledby="new-project-title"
-      className="rounded-xl border border-border bg-card p-5 shadow-xs sm:p-6"
+      className="scroll-mt-24 overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.035] to-white/[0.012]"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="font-mono text-[0.625rem] tracking-[0.2em] text-signal uppercase">
-            New project
-          </p>
-          <h2 id="new-project-title" className="mt-1.5 text-xl font-semibold tracking-tight">
-            Bring the long version.
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Upload a file or paste a public link. We probe the real duration before charging.
-          </p>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.06] px-5 py-4 sm:px-6">
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-md border border-signal/20 bg-signal/[0.06] font-mono text-[9px] text-signal">
+            01
+          </span>
+          <div>
+            <h2 id="new-project-title" className="text-[17px] font-semibold tracking-[-0.025em]">
+              Bring the long version.
+            </h2>
+            <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
+              Upload a file or paste a public link. We probe the real duration before charging.
+            </p>
+          </div>
         </div>
-        <span className="rounded-full border border-signal/20 bg-signal/[0.06] px-2.5 py-1 font-mono text-[0.625rem] text-signal">
+        <span className="rounded-full border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 font-mono text-[8px] tracking-[0.14em] text-zinc-400 uppercase">
           up to {MAX_SOURCE_DURATION_MINUTES} min
         </span>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-1 rounded-lg border border-border bg-background/60 p-1">
-        <button
-          type="button"
-          aria-pressed={mode === "upload"}
-          onClick={() => {
-            setMode("upload");
-            resetState();
-          }}
-          className={cn(
-            "flex h-9 items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors",
-            mode === "upload"
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <UploadCloudIcon className="size-4" />
-          Upload
-        </button>
-        <button
-          type="button"
-          aria-pressed={mode === "link"}
-          onClick={() => {
-            setMode("link");
-            resetState();
-          }}
-          className={cn(
-            "flex h-9 items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors",
-            mode === "link"
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <LinkIcon className="size-4" />
-          Paste link
-        </button>
-      </div>
-
-      {mode === "upload" ? (
-        <div className="mt-5">
-          <div
-            onDragOver={(event) => {
-              event.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={onDrop}
-            className={cn(
-              "rounded-lg border border-dashed p-5 text-center transition-colors",
-              dragOver
-                ? "border-signal bg-signal/[0.06]"
-                : "border-border bg-background/40 hover:border-signal/40",
-            )}
-          >
-            <input
-              ref={inputRef}
-              type="file"
-              accept=".mp4,.mov,.webm,video/mp4,video/quicktime,video/webm"
-              className="sr-only"
-              onChange={(event) => chooseFile(event.target.files?.[0] ?? null)}
-            />
-            <div className="mx-auto grid size-11 place-items-center rounded-full border border-signal/20 bg-signal/[0.06]">
-              <FileVideoIcon className="size-5 text-signal" />
-            </div>
-            <p className="mt-3 text-sm font-medium">
-              {file ? file.name : "Drop a video here, or choose a file"}
+      <div className="px-5 py-5 sm:px-6">
+        {initialLink || uploadIntent ? (
+          <div className="mb-4 flex items-start gap-2.5 rounded-lg border border-signal/15 bg-signal/[0.04] px-3 py-2.5 text-[11.5px] leading-relaxed text-zinc-300">
+            <CheckCircle2Icon className="mt-0.5 size-3.5 shrink-0 text-signal" />
+            <p>
+              {initialLink
+                ? "Your link carried over from the landing page. Review it and queue the source."
+                : "Your file was checked in the browser, not uploaded. Choose it again here so it goes straight to private storage."}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              MP4, MOV, or WebM · up to 500 MB · max {MAX_SOURCE_DURATION_MINUTES} minutes
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-4"
-              disabled={busy}
-              onClick={() => inputRef.current?.click()}
-            >
-              Choose file
-            </Button>
           </div>
+        ) : null}
 
-          {file ? (
-            <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-border bg-background/60 px-3 py-2.5">
-              <div className="min-w-0">
-                <p className="truncate text-xs font-medium">{file.name}</p>
-                <p className="mt-0.5 font-mono text-[0.625rem] text-muted-foreground">
-                  {formatBytes(file.size)}
-                </p>
+        <div
+          className="grid grid-cols-2 gap-1 rounded-xl border border-white/[0.07] bg-black/25 p-1"
+          role="group"
+          aria-label="Source type"
+        >
+          {(
+            [
+              { value: "upload" as const, label: "Upload a file", icon: UploadCloudIcon },
+              { value: "link" as const, label: "Paste a link", icon: Link2Icon },
+            ] as const
+          ).map((item) => {
+            const Icon = item.icon;
+            const selected = mode === item.value;
+            return (
+              <button
+                key={item.value}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => {
+                  setMode(item.value);
+                  resetState();
+                }}
+                className={cn(
+                  "flex h-9 items-center justify-center gap-2 rounded-lg text-[12px] font-medium transition-[background-color,color,box-shadow]",
+                  selected
+                    ? "bg-white/[0.08] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                    : "text-zinc-500 hover:text-zinc-300",
+                )}
+              >
+                <Icon className={cn("size-3.5", selected && "text-signal")} />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {mode === "upload" ? (
+          <div className="mt-4">
+            <div
+              onDragOver={(event) => {
+                event.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={onDrop}
+              className={cn(
+                "relative flex min-h-[210px] flex-col items-center justify-center rounded-xl border border-dashed px-5 py-7 text-center transition-colors",
+                dragOver
+                  ? "border-signal/60 bg-signal/[0.06]"
+                  : "border-white/[0.12] bg-black/20 hover:border-signal/35 hover:bg-white/[0.02]",
+              )}
+            >
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute top-2 left-2 size-3 border-t border-l border-white/20"
+              />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute top-2 right-2 size-3 border-t border-r border-white/20"
+              />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute bottom-2 left-2 size-3 border-b border-l border-white/20"
+              />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-2 bottom-2 size-3 border-r border-b border-white/20"
+              />
+
+              <input
+                ref={inputRef}
+                type="file"
+                accept=".mp4,.mov,.webm,video/mp4,video/quicktime,video/webm"
+                className="sr-only"
+                onChange={(event) => chooseFile(event.target.files?.[0] ?? null)}
+                aria-label="Choose a source video"
+              />
+
+              <div className="grid size-12 place-items-center rounded-xl border border-signal/20 bg-signal/[0.06] shadow-[0_0_40px_-10px_rgba(155,231,255,0.3)]">
+                <FileVideoIcon className="size-5 text-signal" />
               </div>
-              <Button type="button" size="sm" disabled={busy} onClick={startUpload}>
-                {busy ? <Loader2Icon className="animate-spin" /> : null}
-                {phase === "presigning"
-                  ? "Preparing"
-                  : phase === "uploading"
-                    ? "Uploading"
-                    : phase === "initiating"
-                      ? "Queuing"
-                      : "Start processing"}
+              <p className="mt-4 text-[13px] font-medium text-zinc-200">
+                {file ? file.name : "Drop a video here"}
+              </p>
+              <p className="mt-1 max-w-[20rem] text-[11px] leading-relaxed text-zinc-500">
+                MP4, MOV, or WebM · up to 500 MB · {MAX_SOURCE_DURATION_MINUTES} minute maximum
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-4 border-white/10 bg-white/[0.03]"
+                disabled={busy}
+                onClick={() => inputRef.current?.click()}
+              >
+                {file ? "Choose a different file" : "Choose a file"}
               </Button>
             </div>
-          ) : null}
-        </div>
-      ) : (
-        <form
-          className="mt-5"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void startLink();
-          }}
-        >
-          <label htmlFor="source-link" className="text-xs font-medium text-muted-foreground">
-            Public source link
-          </label>
-          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-            <Input
-              id="source-link"
-              type="url"
-              inputMode="url"
-              placeholder="https://www.youtube.com/watch?v=…"
-              value={link}
-              disabled={busy}
-              onChange={(event) => {
-                setLink(event.target.value);
-                if (phase === "error") resetState();
-              }}
-              className="h-10"
-            />
-            <Button
-              type="submit"
-              size="lg"
-              className="h-10"
-              disabled={busy || link.trim().length === 0}
-            >
-              {busy ? <Loader2Icon className="animate-spin" /> : null}
-              Queue link
-            </Button>
-          </div>
-          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            Public YouTube, Instagram, TikTok, Vimeo, X, Facebook, LinkedIn, or Twitch links only.
-            Private and unsupported links fail honestly.
-          </p>
-        </form>
-      )}
 
-      {busy || phase === "queued" ? (
-        <div className="mt-4 rounded-lg border border-border bg-background/60 p-3">
-          <div className="flex items-center justify-between gap-3 text-xs">
-            <span className="text-muted-foreground">
-              {phase === "presigning"
-                ? "Signing a private upload URL"
-                : phase === "uploading"
-                  ? "Uploading directly to R2"
-                  : phase === "initiating"
-                    ? "Verifying the object and reserving credits"
-                    : "Queued"}
-            </span>
-            {phase === "uploading" ? (
-              <span className="font-mono text-signal">{progress}%</span>
+            {file ? (
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3.5 py-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-signal/[0.07]">
+                    <FileVideoIcon className="size-4 text-signal" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-[12px] font-medium text-zinc-200">{file.name}</p>
+                    <p className="mt-0.5 font-mono text-[8px] tracking-[0.12em] text-zinc-600 uppercase">
+                      {formatBytes(file.size)} · private upload
+                    </p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setFile(null);
+                      if (inputRef.current) inputRef.current.value = "";
+                      resetState();
+                    }}
+                    className="grid size-8 place-items-center rounded-lg text-zinc-500 transition-colors hover:bg-white/[0.06] hover:text-zinc-200 disabled:opacity-40"
+                    aria-label="Remove selected file"
+                  >
+                    <XIcon className="size-3.5" />
+                  </button>
+                  <Button type="button" size="sm" disabled={busy} onClick={startUpload}>
+                    {busy ? <Loader2Icon className="animate-spin" /> : <ArrowRightIcon />}
+                    {phase === "presigning"
+                      ? "Preparing"
+                      : phase === "uploading"
+                        ? "Uploading"
+                        : phase === "initiating"
+                          ? "Queuing"
+                          : "Start processing"}
+                  </Button>
+                </div>
+              </div>
             ) : null}
           </div>
-          {phase === "uploading" ? <Progress value={progress} className="mt-2" /> : null}
-        </div>
-      ) : null}
+        ) : (
+          <form
+            className="mt-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void startLink();
+            }}
+          >
+            <label
+              htmlFor="source-link"
+              className="font-mono text-[8px] tracking-[0.18em] text-zinc-500 uppercase"
+            >
+              Public source link
+            </label>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+              <div className="relative min-w-0 flex-1">
+                <Link2Icon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-zinc-600" />
+                <Input
+                  id="source-link"
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://www.youtube.com/watch?v=…"
+                  value={link}
+                  disabled={busy}
+                  onChange={(event) => {
+                    setLink(event.target.value);
+                    if (phase === "error") resetState();
+                  }}
+                  className="h-11 rounded-xl border-white/10 bg-black/25 pl-9"
+                />
+              </div>
+              <Button
+                type="submit"
+                size="lg"
+                className="h-11 rounded-xl px-5"
+                disabled={busy || link.trim().length === 0}
+              >
+                {busy ? <Loader2Icon className="animate-spin" /> : null}
+                Queue link
+              </Button>
+            </div>
+            <p className="mt-2.5 text-[11px] leading-relaxed text-zinc-500">
+              Public YouTube, Instagram, TikTok, Vimeo, X, Facebook, LinkedIn, or Twitch links only.
+              Private and unsupported links fail honestly.
+            </p>
+          </form>
+        )}
 
-      {message ? (
-        <div className="mt-4 flex items-start gap-2 rounded-lg border border-signal/20 bg-signal/[0.05] px-3 py-2.5 text-xs leading-relaxed text-signal">
-          <CheckCircle2Icon className="mt-0.5 size-4 shrink-0" />
-          <span>{message}</span>
-        </div>
-      ) : null}
+        {busy || phase === "queued" ? (
+          <div className="mt-4 rounded-xl border border-white/[0.07] bg-black/20 p-3.5">
+            <div className="flex items-center justify-between gap-3 text-[11px]">
+              <span className="flex items-center gap-2 text-zinc-400">
+                <Loader2Icon className="size-3.5 animate-spin text-signal" />
+                {phase === "queued" ? "Queued for the worker" : progressLabel}
+              </span>
+              {phase === "uploading" ? (
+                <span className="font-mono text-[10px] text-signal">{progress}%</span>
+              ) : null}
+            </div>
+            {phase === "uploading" ? <Progress value={progress} className="mt-2.5" /> : null}
+            {phase === "uploading" ? (
+              <button
+                type="button"
+                onClick={() => xhrRef.current?.abort()}
+                className="mt-2 font-mono text-[8px] tracking-[0.14em] text-zinc-500 uppercase underline-offset-4 hover:text-zinc-300 hover:underline"
+              >
+                Cancel upload
+              </button>
+            ) : null}
+          </div>
+        ) : null}
 
-      {error ? (
-        <div
-          role="alert"
-          className="mt-4 flex items-start gap-2 rounded-lg border border-destructive/25 bg-destructive/10 px-3 py-2.5 text-xs leading-relaxed text-destructive"
-        >
-          <AlertCircleIcon className="mt-0.5 size-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      ) : null}
+        {message ? (
+          <div
+            role="status"
+            className="mt-4 flex items-start gap-2 rounded-xl border border-signal/20 bg-signal/[0.05] px-3 py-2.5 text-[11.5px] leading-relaxed text-signal"
+          >
+            <CheckCircle2Icon className="mt-0.5 size-3.5 shrink-0" />
+            <span>{message}</span>
+          </div>
+        ) : null}
 
-      {!configured ? (
-        <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-          Preview build. Auth and storage keys are not set, so this panel will return a real
-          configuration error instead of pretending to upload.
-        </p>
-      ) : (
-        <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-          Up to {MAX_CREDITS} credits are held until the worker probes the file. Unused credits are
-          returned automatically.
-        </p>
-      )}
+        {error ? (
+          <div
+            id={errorId}
+            role="alert"
+            className="mt-4 flex items-start gap-2 rounded-xl border border-destructive/25 bg-destructive/[0.08] px-3 py-2.5 text-[11.5px] leading-relaxed text-red-200"
+          >
+            <AlertCircleIcon className="mt-0.5 size-3.5 shrink-0" />
+            <span>{error}</span>
+          </div>
+        ) : null}
+
+        <div className="mt-4 flex items-start gap-2 border-t border-white/[0.05] pt-3.5 text-[10.5px] leading-relaxed text-zinc-600">
+          <ShieldCheckIcon className="mt-0.5 size-3.5 shrink-0 text-zinc-600" />
+          <p>
+            {!configured
+              ? "Preview build: auth and storage keys are not set, so this panel returns a real configuration error instead of pretending to upload."
+              : `Up to ${MAX_CREDITS} credits are held until the worker probes the file. Unused credits return automatically.`}
+          </p>
+        </div>
+      </div>
     </section>
   );
 }

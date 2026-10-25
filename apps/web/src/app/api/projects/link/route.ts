@@ -16,6 +16,12 @@ export const dynamic = "force-dynamic";
 
 const MAX_CREDITS = creditsForDurationSeconds(MAX_SOURCE_DURATION_SECONDS);
 
+type CreateLinkResult = {
+  ok: boolean;
+  code?: string;
+  jobId?: string;
+};
+
 function titleFromUrl(value: string): string {
   try {
     const url = new URL(value);
@@ -46,64 +52,47 @@ export async function POST(request: Request) {
 
     const projectId = randomUUID();
 
-    const { error: insertError } = await admin.from("projects").insert({
-      id: projectId,
-      user_id: user.id,
-      title: titleFromUrl(parsed.data.url),
-      source_type: "public_url",
-      source_url: parsed.data.url,
-      status: "ready",
-    });
-
-    if (insertError) {
-      throw new AppError("INTERNAL_ERROR", "Could not create the project.", {
-        details: insertError.message,
-      });
-    }
-
-    const { data: reserved, error: reserveError } = await admin.rpc("reserve_credits", {
+    // One transaction creates the project, takes the reservation, and queues the job. A failure
+    // leaves no half-created project behind and cannot charge for a link that was never queued.
+    const { data, error } = await admin.rpc("create_link_project", {
       p_user_id: user.id,
       p_project_id: projectId,
+      p_title: titleFromUrl(parsed.data.url),
+      p_source_url: parsed.data.url,
       p_credits: MAX_CREDITS,
-      p_idempotency_key: `reserve:${projectId}`,
+      p_reservation_key: `reserve:${projectId}`,
     });
 
-    if (reserveError) {
-      await admin.from("projects").delete().eq("id", projectId);
-      throw new AppError("INTERNAL_ERROR", "Could not reserve credits.", {
-        details: reserveError.message,
+    if (error) {
+      console.error("[projects] create_link_project failed", {
+        code: error.code,
+        message: error.message,
       });
+      throw new AppError("INTERNAL_ERROR", "Could not create the link. No credits were used.");
     }
 
-    if (reserved !== true) {
-      await admin.from("projects").delete().eq("id", projectId);
-      throw new AppError(
-        "INSUFFICIENT_CREDITS",
-        `This source can use up to ${MAX_CREDITS} credits. Add credits or choose a shorter source.`,
-      );
+    const result = data as CreateLinkResult | null;
+
+    if (!result || typeof result.ok !== "boolean") {
+      console.error("[projects] create_link_project returned an unexpected result", data);
+      throw new AppError("INTERNAL_ERROR", "Could not create the link. No credits were used.");
     }
 
-    const { data: jobId, error: jobError } = await admin.rpc("enqueue_job", {
-      p_project_id: projectId,
-      p_job_type: "transcribe",
-      p_payload: { source_url: parsed.data.url },
-    });
+    if (!result.ok) {
+      if (result.code === "insufficient_credits") {
+        throw new AppError(
+          "INSUFFICIENT_CREDITS",
+          `This source can use up to ${MAX_CREDITS} credits. Add credits or choose a shorter source.`,
+        );
+      }
 
-    if (jobError) {
-      await admin.rpc("refund_project_credits", { p_project_id: projectId });
-      await admin
-        .from("projects")
-        .update({ status: "failed", error_message: jobError.message })
-        .eq("id", projectId);
-      throw new AppError("INTERNAL_ERROR", "Could not queue the link.", {
-        details: jobError.message,
-      });
+      throw new AppError("INTERNAL_ERROR", "Could not create the link. No credits were used.");
     }
 
     const response: InitiateProcessingResponse = {
       projectId,
       status: "ready",
-      jobId: typeof jobId === "string" ? jobId : null,
+      jobId: typeof result.jobId === "string" ? result.jobId : null,
     };
 
     return jsonOk(response);

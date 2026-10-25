@@ -4,6 +4,7 @@ import {
   ALLOWED_VIDEO_EXTENSIONS,
   ALLOWED_VIDEO_MIME_TYPES,
   MAX_SOURCE_BYTES,
+  isSupportedSourceUrl,
 } from "@clipmax/shared";
 import { ArrowRightIcon, Link2Icon, UploadIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -88,6 +89,14 @@ export function SourceIntake() {
       const source = parseSourceUrl(value.trim());
       if (!source) {
         setError("Paste a full video link, or switch to Upload.");
+        inputRef.current?.focus();
+        return;
+      }
+
+      if (!isSupportedSourceUrl(source)) {
+        setError(
+          "That host is not supported. Use a public YouTube, Instagram, TikTok, Vimeo, X, Facebook, LinkedIn, or Twitch link.",
+        );
         inputRef.current?.focus();
         return;
       }

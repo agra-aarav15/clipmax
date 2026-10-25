@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { BillingCheckoutResponse, BillingVerifyResponse } from "@clipmax/shared";
 import { CheckCircle2Icon, CreditCardIcon, Loader2Icon, TriangleAlertIcon } from "lucide-react";
@@ -157,7 +157,7 @@ export function UpgradeButton({
         description: `${checkout.planName} · ${checkout.credits} credits / month`,
         image: "/icon.svg",
         prefill: email ? { email } : undefined,
-        theme: { color: "#0047AB" },
+        theme: { color: "#155EEF" },
         handler: (result) => {
           void verifyPayment(result);
         },

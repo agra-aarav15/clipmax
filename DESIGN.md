@@ -29,18 +29,19 @@ earn it with a pile of gradients, fake dashboards, or ten competing animations.
 
 ### Locked launch palette
 
-**Cobalt + ice.** Cobalt `#0047AB` is the action colour: filled buttons, active states, the mark.
-Ice `#89CFF0` is the readable signal: text accents, focus rings, thin rules, glow, and data marks.
+**Cobalt + ice.** Electric cobalt `#155EEF` is the action colour: filled buttons, active states, the
+mark. Ice `#9BE7FF` is the readable signal: text accents, focus rings, thin rules, glow, and data
+marks.
 
 | Token  | Hex       | Use                                              |
 | ------ | --------- | ------------------------------------------------ |
-| Cobalt | `#0047AB` | Filled actions, mark, selection, active tab      |
-| Ice    | `#89CFF0` | Serif emphasis, labels, progress, focus, glow    |
+| Cobalt | `#155EEF` | Filled actions, mark, selection, active tab      |
+| Ice    | `#9BE7FF` | Serif emphasis, labels, progress, focus, glow    |
 | Ink    | `#08090A` | Canvas                                            |
 | Paper  | `#F2F1EC` | Primary text                                     |
 
-White text on cobalt passes for bold UI; never put white text on ice. Use ink on ice. The old lime
-`#CBFF4B` is removed from the landing; do not reintroduce it without a new decision.
+White text on cobalt passes AA for normal text at this shade; never put white text on ice. Use ink on
+ice. The old lime `#CBFF4B` is removed from the landing; do not reintroduce it without a new decision.
 
 ### Core tokens
 
@@ -58,9 +59,9 @@ White text on cobalt passes for bold UI; never put white text on ice. Use ink on
   --quiet-foreground: #71717a;
 
   /* signal — cobalt action, ice readable accent */
-  --primary: #0047ab;
+  --primary: #155eef;
   --primary-foreground: #ffffff;
-  --signal: #89cff0;
+  --signal: #9be7ff;
   --signal-foreground: #071018;
 
   /* semantic */
@@ -71,7 +72,7 @@ White text on cobalt passes for bold UI; never put white text on ice. Use ink on
   /* lines and focus */
   --border: rgb(255 255 255 / 9%);
   --input: rgb(255 255 255 / 14%);
-  --ring: rgb(137 207 240 / 70%);
+  --ring: rgb(155 231 255 / 70%);
 }
 ```
 
@@ -90,7 +91,7 @@ Rules:
 
 - Body text on `--background` must be at least 4.5:1. Use `--foreground` or zinc-300, not zinc-500,
   for paragraphs.
-- White on `#0047AB` is acceptable for large/bold UI; verify small text.
+- White on `#155EEF` passes AA for normal text; verify any custom opacity or overlay.
 - Ice on dark is high contrast; ink on ice is the safe pairing.
 - Never use colour alone to communicate job state. Pair it with a label and an icon.
 

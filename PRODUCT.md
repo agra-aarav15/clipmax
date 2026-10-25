@@ -105,7 +105,7 @@ clip lands.
 
 ## Resolved decisions (23 Oct 2026)
 
-- **Palette:** cobalt `#0047AB` + ice `#89CFF0`. Cobalt for filled actions, ice for readable
+- **Palette:** electric cobalt `#155EEF` + ice `#9BE7FF`. Cobalt for filled actions, ice for readable
   accents, focus, and glow.
 - **Auth:** Supabase Auth (email magic link + Google).
 - **Hosting:** full Next.js app on Vercel or Cloudflare with a custom domain. GitHub Pages cannot

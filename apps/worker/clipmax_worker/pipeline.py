@@ -9,6 +9,9 @@ from __future__ import annotations
 import logging
 import math
 import tempfile
+import threading
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -60,9 +63,65 @@ CONTENT_TYPE_BY_SUFFIX = {
     ".mkv": "video/x-matroska",
 }
 
+# A job lease is renewed at a third of its length, but never more often than this in production.
+HEARTBEAT_MIN_INTERVAL_SECONDS = 30.0
+
 
 class PermanentJobError(RuntimeError):
     """A failure that retries cannot fix (bad source, unsupported link, missing audio)."""
+
+
+class LeaseLostError(RuntimeError):
+    """Another worker reclaimed the job. Stop writing instead of racing the new owner."""
+
+
+@contextmanager
+def _keep_lease(context: WorkerContext, job_id: str) -> Iterator[None]:
+    """Renews the job lease while the pipeline works.
+
+    The claim only holds the job for `job_lease_seconds`. A long transcode would otherwise let the
+    lease expire and a second worker claim the same row. The heartbeat thread renews it at a third
+    of the lease, and stops as soon as the database says this worker no longer owns the job.
+    """
+    stop = threading.Event()
+    interval = max(
+        HEARTBEAT_MIN_INTERVAL_SECONDS,
+        min(context.settings.job_lease_seconds / 3, 300),
+    )
+
+    def beat() -> None:
+        while not stop.wait(interval):
+            try:
+                renewed = context.rest.rpc(
+                    "heartbeat_job",
+                    {
+                        "p_job_id": job_id,
+                        "p_worker_id": context.worker_id,
+                        "p_lease_seconds": context.settings.job_lease_seconds,
+                    },
+                )
+            except Exception:
+                logger.exception("could not renew the job lease")
+                continue
+
+            if renewed is not True:
+                logger.error(
+                    "job lease is no longer owned by %s; stopping renewal",
+                    context.worker_id,
+                )
+                return
+
+    thread = threading.Thread(
+        target=beat,
+        name=f"clipmax-heartbeat-{job_id[:8]}",
+        daemon=True,
+    )
+    thread.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        thread.join(timeout=5)
 
 
 @dataclass
@@ -116,24 +175,24 @@ def process_job(context: WorkerContext, job: dict[str, Any]) -> None:
     project_id_var.set(project_id)
 
     try:
-        project = context.rest.select_one("projects", [("id", f"eq.{project_id}")])
-        if project is None:
-            raise PermanentJobError("Project no longer exists.")
-        if job_type == "transcribe":
-            _process_transcribe(context, job, project)
-        elif job_type == "render_clip":
-            _process_render(context, job, project)
-        else:
-            raise PermanentJobError(f"Unknown job type: {job_type}")
+        with _keep_lease(context, job_id):
+            project = context.rest.select_one("projects", [("id", f"eq.{project_id}")])
+            if project is None:
+                raise PermanentJobError("Project no longer exists.")
+            if job_type == "transcribe":
+                _process_transcribe(context, job, project)
+            elif job_type == "render_clip":
+                _process_render(context, job, project)
+            else:
+                raise PermanentJobError(f"Unknown job type: {job_type}")
+    except LeaseLostError as exc:
+        logger.error("stopping job because the lease was lost: %s", exc)
     except PermanentJobError as exc:
         logger.error("permanent job failure: %s", exc)
-        _permanent_fail(context, job_id, project_id, str(exc))
+        _fail_job(context, job_id, str(exc), permanent=True)
     except Exception as exc:
         logger.exception("transient job failure")
-        try:
-            context.rest.rpc("fail_job", {"p_job_id": job_id, "p_error": str(exc)[:2000]})
-        except Exception:
-            logger.exception("could not mark job as failed")
+        _fail_job(context, job_id, str(exc)[:2000], permanent=False)
     finally:
         job_id_var.set(None)
         project_id_var.set(None)
@@ -180,7 +239,7 @@ def _process_transcribe(
                 "error_message": None,
             },
         )
-        _update_job_progress(context, job_id, 15)
+        _require_lease(context, job_id, 15)
 
         if not result.has_audio:
             raise PermanentJobError("The source has no audio stream to transcribe.")
@@ -192,7 +251,7 @@ def _process_transcribe(
             ffmpeg_binary=context.settings.ffmpeg_binary,
             timeout=context.settings.transcription_timeout_seconds,
         )
-        _update_job_progress(context, job_id, 25)
+        _require_lease(context, job_id, 25)
 
         try:
             transcription = transcribe_audio(
@@ -202,7 +261,7 @@ def _process_transcribe(
             )
         except TranscriptionPermanentError as exc:
             raise PermanentJobError(str(exc)) from exc
-        _update_job_progress(context, job_id, 55)
+        _require_lease(context, job_id, 55)
 
         context.rest.upsert(
             "transcripts",
@@ -227,7 +286,7 @@ def _process_transcribe(
         )
         if not highlights:
             raise PermanentJobError("No usable highlights were found in the transcript.")
-        _update_job_progress(context, job_id, 70)
+        _require_lease(context, job_id, 70)
 
         context.rest.delete(
             "clips",
@@ -248,7 +307,7 @@ def _process_transcribe(
                 "caption_style": {
                     "preset": "beast_bold",
                     "font_size": 72,
-                    "highlight_color": "#89CFF0",
+                    "highlight_color": "#9BE7FF",
                 },
             }
             for candidate in highlights
@@ -274,6 +333,29 @@ def _process_transcribe(
         _complete_job(context, job_id)
 
 
+def _select_render_clips(
+    all_clips: list[dict[str, Any]],
+    requested: set[str] | None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Returns (matching clips, clips still needing a render).
+
+    Raises when the job references clips that no longer exist. An empty pending list is not an
+    error: it means an earlier worker already rendered everything and only failed to close the job.
+    """
+    if not all_clips:
+        raise PermanentJobError("No clips were found for this project.")
+
+    if requested is not None:
+        matching = [clip for clip in all_clips if str(clip.get("id")) in requested]
+        if not matching:
+            raise PermanentJobError("The clips requested by this render job no longer exist.")
+    else:
+        matching = all_clips
+
+    pending = [clip for clip in matching if clip.get("render_status") != "rendered"]
+    return matching, pending
+
+
 def _process_render(
     context: WorkerContext,
     job: dict[str, Any],
@@ -283,8 +365,29 @@ def _process_render(
     project_id = str(project["id"])
     raw_payload = job.get("payload")
     payload = raw_payload if isinstance(raw_payload, dict) else {}
-    requested_ids = payload.get("clip_ids")
-    requested = set(requested_ids) if isinstance(requested_ids, list) else None
+    raw_requested = payload.get("clip_ids")
+    requested = {str(item) for item in raw_requested} if isinstance(raw_requested, list) else None
+
+    if requested is not None and not requested:
+        raise PermanentJobError("The render job did not specify any clips.")
+
+    all_clips = context.rest.select(
+        "clips",
+        [("project_id", f"eq.{project_id}"), ("order", "start_time.asc")],
+    )
+    matching, clips = _select_render_clips(all_clips, requested)
+
+    if not clips:
+        # A previous worker rendered every requested clip but died before completing the job. The
+        # honest outcome is success, not a permanent failure and a refund.
+        logger.info("all %d requested clip(s) were already rendered", len(matching))
+        context.rest.update(
+            "projects",
+            [("id", f"eq.{project_id}")],
+            {"status": "processing", "error_message": None},
+        )
+        _finish_render_job(context, job_id)
+        return
 
     with tempfile.TemporaryDirectory(
         dir=context.settings.temp_dir,
@@ -311,16 +414,6 @@ def _process_render(
                 "The transcript has no word-level timestamps, so captions cannot be burned in."
             )
 
-        clips = context.rest.select(
-            "clips",
-            [("project_id", f"eq.{project_id}"), ("order", "start_time.asc")],
-        )
-        if requested:
-            clips = [clip for clip in clips if str(clip.get("id")) in requested]
-        clips = [clip for clip in clips if clip.get("render_status") != "rendered"]
-        if not clips:
-            raise PermanentJobError("No clips need rendering.")
-
         context.rest.update(
             "projects",
             [("id", f"eq.{project_id}")],
@@ -328,6 +421,7 @@ def _process_render(
         )
 
         for index, clip in enumerate(clips):
+            _require_lease(context, job_id, 25 + int(70 * index / len(clips)))
             _render_one(
                 context,
                 project=project,
@@ -338,14 +432,9 @@ def _process_render(
                 tmp_path=tmp_path,
             )
             progress = 25 + int(70 * (index + 1) / len(clips))
-            _update_job_progress(context, job_id, progress)
+            _require_lease(context, job_id, progress)
 
-        context.rest.update(
-            "projects",
-            [("id", f"eq.{project_id}")],
-            {"status": "completed", "error_message": None},
-        )
-        _complete_job(context, job_id)
+        _finish_render_job(context, job_id)
         logger.info("rendered %d clip(s) for project %s", len(clips), project_id)
 
 
@@ -523,6 +612,8 @@ def _validate_public_url(url: str) -> None:
 
 
 def _validate_probe(context: WorkerContext, result: ProbeResult) -> None:
+    if result.duration_seconds <= 0:
+        raise PermanentJobError("The source has no usable duration.")
     if result.duration_seconds > context.settings.max_source_duration_seconds:
         raise PermanentJobError(
             f"The source is {result.duration_seconds / 60:.1f} minutes; the limit is "
@@ -534,55 +625,66 @@ def _validate_probe(context: WorkerContext, result: ProbeResult) -> None:
         raise PermanentJobError("The source has no usable video dimensions.")
 
 
-def _update_job_progress(context: WorkerContext, job_id: str, percent: int) -> None:
-    context.rest.update(
-        "processing_jobs",
-        [("id", f"eq.{job_id}")],
-        {"progress_percent": max(0, min(100, percent))},
-    )
-
-
-def _complete_job(context: WorkerContext, job_id: str) -> None:
-    context.rest.update(
-        "processing_jobs",
-        [("id", f"eq.{job_id}")],
+def _update_job_progress(context: WorkerContext, job_id: str, percent: int) -> bool:
+    updated = context.rest.rpc(
+        "update_job_progress",
         {
-            "status": "completed",
-            "progress_percent": 100,
-            "error_message": None,
-            "locked_by": None,
-            "locked_at": None,
-            "lease_expires_at": None,
+            "p_job_id": job_id,
+            "p_worker_id": context.worker_id,
+            "p_percent": max(0, min(100, percent)),
         },
     )
+    return updated is True
 
 
-def _permanent_fail(
+def _require_lease(context: WorkerContext, job_id: str, percent: int) -> None:
+    if not _update_job_progress(context, job_id, percent):
+        raise LeaseLostError("The job lease expired and another worker reclaimed the job.")
+
+
+def _complete_job(context: WorkerContext, job_id: str) -> bool:
+    completed = context.rest.rpc(
+        "complete_job",
+        {"p_job_id": job_id, "p_worker_id": context.worker_id},
+    )
+    if completed is not True:
+        logger.error("job %s was no longer owned when completion was reported", job_id)
+        return False
+    return True
+
+
+def _finish_render_job(context: WorkerContext, job_id: str) -> bool:
+    finished = context.rest.rpc(
+        "finish_render_job",
+        {"p_job_id": job_id, "p_worker_id": context.worker_id},
+    )
+    if finished is not True:
+        logger.error("render job %s was no longer owned when completion was reported", job_id)
+        return False
+    return True
+
+
+def _fail_job(
     context: WorkerContext,
     job_id: str,
-    project_id: str,
     message: str,
+    *,
+    permanent: bool,
 ) -> None:
     try:
-        context.rest.update(
-            "processing_jobs",
-            [("id", f"eq.{job_id}")],
+        failed = context.rest.rpc(
+            "fail_job",
             {
-                "status": "failed",
-                "error_message": message[:2000],
-                "locked_by": None,
-                "locked_at": None,
-                "lease_expires_at": None,
+                "p_job_id": job_id,
+                "p_worker_id": context.worker_id,
+                "p_error": message[:2000],
+                "p_permanent": permanent,
             },
         )
-        context.rest.rpc("refund_project_credits", {"p_project_id": project_id})
-        context.rest.update(
-            "projects",
-            [("id", f"eq.{project_id}")],
-            {"status": "failed", "error_message": message[:2000]},
-        )
+        if failed is not True:
+            logger.error("job %s was no longer owned when failure was reported", job_id)
     except Exception:
-        logger.exception("could not persist permanent failure")
+        logger.exception("could not persist job failure")
 
 
 def _safe_float(value: Any) -> float:

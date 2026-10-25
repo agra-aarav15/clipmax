@@ -1,4 +1,4 @@
-import {
+﻿import {
   ArrowUpRightIcon,
   CaptionsIcon,
   Clock3Icon,
@@ -75,8 +75,8 @@ export function PreviewSection() {
       className="relative scroll-mt-24 overflow-hidden border-b border-white/[0.06]"
     >
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_82%_4%,rgba(0,71,171,0.18),transparent_70%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_40%_35%_at_8%_80%,rgba(137,207,240,0.055),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_82%_4%,rgba(21,94,239,0.18),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_40%_35%_at_8%_80%,rgba(155,231,255,0.055),transparent_70%)]" />
         <div className="absolute inset-0 hero-dots opacity-[0.14] [mask-image:linear-gradient(to_bottom,black,transparent_62%)]" />
       </div>
 
@@ -98,7 +98,7 @@ export function PreviewSection() {
               Hooks, cut boundaries, caption emphasis. This is the shape of an export: vertical,
               captioned, and ready to post.
             </p>
-            <p className="mt-4 flex items-start gap-2 border-t border-white/[0.07] pt-4 text-[11px] leading-relaxed text-zinc-500">
+            <p className="mt-4 flex items-start gap-2 border-t border-white/[0.07] pt-4 text-[11px] leading-relaxed text-zinc-400">
               <InfoIcon className="mt-0.5 size-3.5 shrink-0 text-signal/70" aria-hidden="true" />
               Art-directed sample project. Not a customer result, and not a live render.
             </p>
@@ -122,7 +122,7 @@ export function PreviewSection() {
               ))}
             </div>
 
-            <div className="mt-4 flex items-center justify-between gap-4 font-mono text-[8px] tracking-[0.14em] text-zinc-600 uppercase">
+            <div className="mt-4 flex items-center justify-between gap-4 font-mono text-[9px] tracking-[0.14em] text-zinc-500 uppercase">
               <span className="flex items-center gap-1.5">
                 <span className="size-1 rounded-full bg-signal/80" />
                 Hook scores shown are sample values

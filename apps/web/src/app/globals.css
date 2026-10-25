@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -20,9 +20,9 @@
   --popover-foreground: var(--foreground);
 
   /* cobalt is the action colour; ice is the readable signal on dark */
-  --primary: #0047ab;
+  --primary: #155eef;
   --primary-foreground: #ffffff;
-  --signal: #89cff0;
+  --signal: #9be7ff;
   --signal-foreground: #071018;
   --secondary: oklch(0.245 0.005 286);
   --secondary-foreground: var(--foreground);
@@ -35,10 +35,10 @@
 
   --border: oklch(1 0 0 / 9%);
   --input: oklch(1 0 0 / 14%);
-  --ring: rgb(137 207 240 / 70%);
+  --ring: rgb(155 231 255 / 70%);
 
-  --chart-1: #89cff0;
-  --chart-2: #0047ab;
+  --chart-1: #9be7ff;
+  --chart-2: #155eef;
   --chart-3: oklch(0.72 0.17 300);
   --chart-4: oklch(0.8 0.16 75);
   --chart-5: oklch(0.68 0.2 20);
@@ -132,7 +132,8 @@
   }
 
   :focus-visible {
-    outline-color: var(--color-ring);
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -186,6 +187,18 @@ html.lenis body {
     linear-gradient(to right, oklch(1 0 0 / 4%) 1px, transparent 1px),
     linear-gradient(to bottom, oklch(1 0 0 / 4%) 1px, transparent 1px);
   background-size: 48px 48px;
+}
+
+/* The studio's quieter version of the drafting grid. */
+@utility hairline-grid {
+  background-image:
+    linear-gradient(to right, oklch(1 0 0 / 3.5%) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(1 0 0 / 3.5%) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 @utility edge-fade {

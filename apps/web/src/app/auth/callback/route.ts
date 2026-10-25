@@ -1,14 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { safeNextPath } from "@/lib/navigation";
 import { isSupabaseConfigured, publicEnv } from "@/lib/public-env";
 
 export const dynamic = "force-dynamic";
-
-function safeNext(value: string | null): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/dashboard";
-  return value;
-}
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -22,10 +18,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/signup?error=auth", requestUrl.origin));
   }
 
-  const next = safeNext(requestUrl.searchParams.get("next"));
+  const next = safeNextPath(requestUrl.searchParams.get("next"));
   const response = NextResponse.redirect(new URL(next, requestUrl.origin));
 
   const supabase = createServerClient(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey, {
+    cookieOptions: {
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    },
     cookies: {
       getAll() {
         return request.cookies.getAll();

@@ -1,4 +1,5 @@
 import { ArrowUpRightIcon } from "lucide-react";
+import Link from "next/link";
 
 const REPO_URL = "https://github.com/agra-aarav15/clipmax";
 
@@ -19,15 +20,24 @@ export function PreviewBar() {
           </span>
         </span>
 
-        <a
-          href={REPO_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex shrink-0 items-center gap-1 text-zinc-400 transition-colors hover:text-signal"
-        >
-          Source
-          <ArrowUpRightIcon className="size-2.5" aria-hidden="true" />
-        </a>
+        <span className="flex shrink-0 items-center gap-3">
+          <Link
+            href="/directions"
+            className="inline-flex items-center gap-1 text-zinc-400 transition-colors hover:text-signal"
+          >
+            Directions
+          </Link>
+          <span className="h-3 w-px bg-white/10" aria-hidden="true" />
+          <a
+            href={REPO_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-zinc-400 transition-colors hover:text-signal"
+          >
+            Source
+            <ArrowUpRightIcon className="size-2.5" aria-hidden="true" />
+          </a>
+        </span>
       </div>
     </div>
   );

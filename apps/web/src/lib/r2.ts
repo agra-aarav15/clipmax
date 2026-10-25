@@ -1,5 +1,6 @@
 import {
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
@@ -114,6 +115,41 @@ export async function headObject(key: string) {
 export async function deleteObject(key: string) {
   const { client: s3, config } = client();
   await s3.send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key }));
+}
+
+/**
+ * Deletes up to 1000 keys per request. Used by account deletion, where leaving orphaned video
+ * objects behind would break the promise made on the privacy page.
+ */
+export async function deleteObjects(keys: string[]) {
+  const unique = [...new Set(keys.filter((key) => key.trim().length > 0))];
+  if (unique.length === 0) return 0;
+
+  const { client: s3, config } = client();
+  let deleted = 0;
+
+  for (let index = 0; index < unique.length; index += 1000) {
+    const batch = unique.slice(index, index + 1000);
+    const result = await s3.send(
+      new DeleteObjectsCommand({
+        Bucket: config.bucket,
+        Delete: { Objects: batch.map((Key) => ({ Key })), Quiet: true },
+      }),
+    );
+
+    if (result.Errors && result.Errors.length > 0) {
+      const first = result.Errors[0];
+      throw new Error(
+        `R2 refused ${result.Errors.length} object ${result.Errors.length === 1 ? "deletion" : "deletions"}${
+          first?.Key ? ` (first key: ${first.Key})` : ""
+        }.`,
+      );
+    }
+
+    deleted += batch.length;
+  }
+
+  return deleted;
 }
 
 export async function presignGet(key: string, expiresIn?: number) {

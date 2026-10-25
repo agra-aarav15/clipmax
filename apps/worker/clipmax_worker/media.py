@@ -372,7 +372,7 @@ def build_ass(
 ) -> str:
     style = caption_style or {}
     font_size = int(_float(style.get("font_size")) or 72)
-    highlight = ass_color(str(style.get("highlight_color") or "#89CFF0"))
+    highlight = ass_color(str(style.get("highlight_color") or "#9BE7FF"))
     groups = group_words(words)
 
     style_format = (

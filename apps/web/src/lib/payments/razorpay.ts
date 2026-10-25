@@ -33,11 +33,12 @@ function apiError(status: number, body: string): Error {
  *
  * `notes.user_id` is the server-controlled link between a Razorpay subscription and a ClipMax
  * account. The checkout route also stores the subscription id against the user, so the webhook can
- * resolve the owner even if notes are omitted.
+ * resolve the owner even if notes are omitted. `notes.attempt_id` lets the route prove which local
+ * checkout attempt a remote subscription belongs to.
  */
 export async function createSubscription(
   config: BillingConfig,
-  input: { userId: string; email: string | null },
+  input: { userId: string; email: string | null; attemptId: string },
 ): Promise<RazorpaySubscription> {
   const basic = Buffer.from(`${config.keyId}:${config.keySecret}`).toString("base64");
 
@@ -58,6 +59,7 @@ export async function createSubscription(
         customer_notify: 1,
         notes: {
           user_id: input.userId,
+          attempt_id: input.attemptId,
           ...(input.email ? { email: input.email } : {}),
         },
       }),
@@ -85,6 +87,49 @@ export async function createSubscription(
   }
 
   return parsed;
+}
+
+/**
+ * Cancels a subscription through Razorpay. `atCycleEnd` keeps access until the paid period ends;
+ * an unpaid pending checkout is cancelled immediately so it can never charge later.
+ */
+export async function cancelSubscription(
+  config: BillingConfig,
+  subscriptionId: string,
+  atCycleEnd: boolean,
+): Promise<{ status?: string; current_end?: number | null }> {
+  if (!/^sub_[A-Za-z0-9]+$/.test(subscriptionId)) {
+    throw new Error("The stored Razorpay subscription id is not valid.");
+  }
+
+  const basic = Buffer.from(`${config.keyId}:${config.keySecret}`).toString("base64");
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `${RAZORPAY_API}/subscriptions/${encodeURIComponent(subscriptionId)}/cancel`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${basic}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ cancel_at_cycle_end: atCycleEnd ? 1 : 0 }),
+        signal: AbortSignal.timeout(15_000),
+      },
+    );
+  } catch (cause) {
+    throw new Error("Could not reach Razorpay to cancel the subscription.", { cause });
+  }
+
+  const body = await response.text();
+  if (!response.ok) throw apiError(response.status, body);
+
+  try {
+    return JSON.parse(body) as { status?: string; current_end?: number | null };
+  } catch {
+    return {};
+  }
 }
 
 function safeCompare(expected: Buffer, providedHex: string): boolean {

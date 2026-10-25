@@ -1,4 +1,4 @@
-import { MAX_SOURCE_DURATION_MINUTES } from "@clipmax/shared";
+﻿import { MAX_SOURCE_DURATION_MINUTES } from "@clipmax/shared";
 import { ArrowDownIcon, CheckIcon } from "lucide-react";
 import Link from "next/link";
 
@@ -17,8 +17,8 @@ export function Hero() {
   return (
     <section id="top" className="relative isolate overflow-hidden border-b border-white/[0.06]">
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_72%_-5%,rgba(0,71,171,0.24),transparent_65%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_40%_at_16%_35%,rgba(137,207,240,0.09),transparent_68%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_72%_-5%,rgba(21,94,239,0.24),transparent_65%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_40%_at_16%_35%,rgba(155,231,255,0.09),transparent_68%)]" />
         <div className="absolute inset-0 hero-dots [mask-image:linear-gradient(to_bottom,black,transparent_82%)] opacity-[0.38]" />
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
         <div className="absolute inset-0 film-grain opacity-[0.055] mix-blend-overlay" />

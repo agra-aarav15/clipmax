@@ -14,7 +14,9 @@ the worker does not claim jobs while they are missing.
 
 Missing AI credentials do not stop the process. A job that cannot transcribe fails permanently with
 a specific message and refunds its credit reservation. Highlights fall back to a deterministic
-heuristic when no LLM key is configured, and the reasoning field says so.
+heuristic when no LLM key is configured, and the reasoning field says so. A heartbeat thread renews
+the job lease during long transcodes; every progress, completion, and failure write is checked
+against the owning worker id, so a reclaimed job cannot be finished by the old worker.
 
 ## Prerequisites
 

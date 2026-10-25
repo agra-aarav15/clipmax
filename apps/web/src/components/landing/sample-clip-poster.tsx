@@ -1,4 +1,4 @@
-import { CaptionsIcon, PlayIcon } from "lucide-react";
+﻿import { CaptionsIcon, PlayIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -88,7 +88,7 @@ export function SampleClipPoster({
   return (
     <div
       className={cn(
-        "group relative isolate aspect-[9/16] overflow-hidden rounded-2xl border border-white/10 bg-[#08090a] shadow-[0_40px_90px_-50px_rgba(0,0,0,0.95)] transition-[border-color,transform,box-shadow] duration-500 hover:border-signal/35 hover:shadow-[0_50px_110px_-50px_rgba(0,71,171,0.5)]",
+        "group relative isolate aspect-[9/16] overflow-hidden rounded-2xl border border-white/10 bg-[#08090a] shadow-[0_40px_90px_-50px_rgba(0,0,0,0.95)] transition-[border-color,transform,box-shadow] duration-500 hover:border-signal/35 hover:shadow-[0_50px_110px_-50px_rgba(21,94,239,0.5)]",
         className,
       )}
     >
@@ -136,7 +136,7 @@ export function SampleClipPoster({
       </div>
 
       <div className="absolute inset-x-0 bottom-0 z-10 p-3.5">
-        <div className="flex items-center justify-between font-mono text-[7px] tracking-[0.14em] text-white/55 uppercase">
+        <div className="flex items-center justify-between font-mono text-[7px] tracking-[0.14em] text-white/70 uppercase">
           <span>{clip.platform}</span>
           <span className="flex items-center gap-1">
             <CaptionsIcon className="size-2.5" aria-hidden="true" />
@@ -162,7 +162,7 @@ export function SampleClipPoster({
           <div className="h-[2px] flex-1 overflow-hidden rounded-full bg-white/15">
             <div className="h-full rounded-full bg-signal" style={{ width: clip.progress }} />
           </div>
-          <span className="font-mono text-[7px] tracking-[0.08em] text-white/60">
+          <span className="font-mono text-[7px] tracking-[0.08em] text-white/70">
             {clip.duration}
           </span>
         </div>

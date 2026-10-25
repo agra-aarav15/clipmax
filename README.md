@@ -42,9 +42,11 @@ Verified locally without hosted credentials:
 - A synthetic source renders through the real FFmpeg path: 1080×1920, H.264/AAC, burned ASS
   captions with word-level highlight, verified by ffprobe.
 - Razorpay webhook and checkout HMAC verification pass positive and tamper-negative tests.
-- `pnpm db:verify` applies all five Supabase migrations to PostgreSQL 18 (PGlite) with stubbed
+- `pnpm db:verify` applies all six Supabase migrations to PostgreSQL 18 (PGlite) with stubbed
   Supabase auth and proves the signup grant, monthly renewal idempotency, fixed-window rate
-  limiting, RLS cross-tenant isolation, and reservation/refund accounting.
+  limiting, RLS cross-tenant isolation, reservation/settle/refund accounting, checkout
+  serialization, webhook claim/retry idempotency, ordered subscription events, and worker lease
+  ownership.
 - `/api/health` reports real readiness: 503 with `ready: false` when Supabase/R2 are missing, 200
   only when the core integrations are configured. `/api/cron/renew-free-credits` rejects missing or
   wrong `CRON_SECRET` values.

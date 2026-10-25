@@ -1,4 +1,4 @@
-import {
+﻿import {
   ArrowUpRightIcon,
   AudioLinesIcon,
   CaptionsIcon,
@@ -330,7 +330,7 @@ export function HeroConsole() {
   return (
     <div className="relative mx-auto mt-8 w-full max-w-[1180px] sm:mt-12">
       <div
-        className="pointer-events-none absolute -inset-x-16 -top-16 bottom-0 -z-10 animate-ambient bg-[radial-gradient(ellipse_at_50%_20%,rgba(0,71,171,0.26),transparent_65%)] blur-2xl"
+        className="pointer-events-none absolute -inset-x-16 -top-16 bottom-0 -z-10 animate-ambient bg-[radial-gradient(ellipse_at_50%_20%,rgba(21,94,239,0.26),transparent_65%)] blur-2xl"
         aria-hidden="true"
       />
 

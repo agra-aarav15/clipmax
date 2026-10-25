@@ -2,6 +2,7 @@ import { PLAN_CATALOG, formatPlanPrice, getPlan, type PlanTier } from "@clipmax/
 import {
   AlertTriangleIcon,
   ArrowLeftIcon,
+  ArrowUpRightIcon,
   CheckIcon,
   CoinsIcon,
   CreditCardIcon,
@@ -13,6 +14,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { CancelSubscriptionButton } from "@/components/studio/cancel-subscription-button";
 import { StudioConfigurationState } from "@/components/studio/configuration-state";
 import { UpgradeButton } from "@/components/studio/upgrade-button";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +63,7 @@ type SubscriptionRow = {
   provider: string;
   provider_subscription_id: string | null;
   current_period_end: string | null;
+  cancel_at_period_end: boolean;
 };
 type LedgerRow = {
   id: string;
@@ -106,7 +109,9 @@ export default async function BillingPage() {
       .maybeSingle<WalletRow>(),
     supabase
       .from("subscriptions")
-      .select("status, plan, provider, provider_subscription_id, current_period_end")
+      .select(
+        "status, plan, provider, provider_subscription_id, current_period_end, cancel_at_period_end",
+      )
       .eq("user_id", user.id)
       .maybeSingle<SubscriptionRow>(),
     supabase
@@ -128,9 +133,18 @@ export default async function BillingPage() {
     ? new Date(subscription.current_period_end)
     : null;
   const activeStarter = subscription?.status === "active";
+  const cancelScheduled = Boolean(subscription?.cancel_at_period_end);
   const loadErrors = [profileError, walletError, subscriptionError, ledgerError].filter(
     (error): error is NonNullable<typeof error> => Boolean(error),
   );
+
+  if (loadErrors.length > 0) {
+    // Keep provider details in server logs; do not surface raw Postgres/Supabase messages.
+    console.error(
+      "[billing] billing data failed to load",
+      loadErrors.map((error) => ({ code: error.code, message: error.message })),
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -171,8 +185,12 @@ export default async function BillingPage() {
         <div className="mt-6 flex items-start gap-2.5 rounded-lg border border-destructive/25 bg-destructive/10 px-3 py-2.5 text-xs leading-relaxed text-destructive">
           <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
           <span>
-            Some billing data could not be loaded:{" "}
-            {loadErrors.map((error) => error.message).join(" · ")}
+            Some billing data could not be loaded. No payment was taken. Refresh to try again, or
+            check the{" "}
+            <Link href="/status" className="underline underline-offset-4 hover:text-white">
+              service status
+            </Link>
+            .
           </span>
         </div>
       ) : null}
@@ -216,16 +234,31 @@ export default async function BillingPage() {
           <CardHeader className="border-b border-border/70 py-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <CardTitle>{activeStarter ? "Starter is active" : "Upgrade to Starter"}</CardTitle>
+                <CardTitle>
+                  {activeStarter
+                    ? cancelScheduled
+                      ? "Starter ends at the period close"
+                      : "Starter is active"
+                    : "Upgrade to Starter"}
+                </CardTitle>
                 <CardDescription className="mt-1">
                   {activeStarter
-                    ? "Your subscription renews in Razorpay. Credits arrive on every successful charge."
+                    ? cancelScheduled
+                      ? "No further charges are scheduled. Credits already granted stay in the wallet."
+                      : "Your subscription renews in Razorpay. Credits arrive on every successful charge."
                     : "150 credits every month, charged as ₹1,499 / month through Razorpay."}
                 </CardDescription>
               </div>
               {activeStarter ? (
-                <Badge variant="outline" className="border-signal/30 text-signal">
-                  Active
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    cancelScheduled
+                      ? "border-amber-300/30 text-amber-200"
+                      : "border-signal/30 text-signal",
+                  )}
+                >
+                  {cancelScheduled ? "Cancels soon" : "Active"}
                 </Badge>
               ) : null}
             </div>
@@ -254,10 +287,23 @@ export default async function BillingPage() {
 
             <div className="mt-6 border-t border-border/70 pt-5">
               {activeStarter ? (
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  To change or cancel, use the Razorpay subscription link in the receipt email.
-                  Cancellation stops future charges; credits already granted stay in the wallet.
-                </p>
+                <div className="space-y-3">
+                  <CancelSubscriptionButton
+                    periodEnd={subscription?.current_period_end ?? null}
+                    scheduled={cancelScheduled}
+                  />
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    Cancelling stops future charges at the end of the current period. It does not
+                    remove credits already in the wallet. Deletion is available in{" "}
+                    <Link
+                      href="/dashboard/settings"
+                      className="text-signal underline-offset-4 hover:underline"
+                    >
+                      Settings
+                    </Link>{" "}
+                    after the subscription ends.
+                  </p>
+                </div>
               ) : billing ? (
                 <div className="space-y-3">
                   {subscriptionStatus === "pending" ? (
@@ -305,6 +351,13 @@ export default async function BillingPage() {
                   <CardDescription className="mt-1 text-xs">
                     Newest first. Append-only, written by database functions.
                   </CardDescription>
+                  <Link
+                    href="/dashboard/billing/ledger"
+                    className="mt-2 inline-flex items-center gap-1 font-mono text-[8px] tracking-[0.12em] text-signal uppercase underline-offset-4 hover:underline"
+                  >
+                    Full ledger &amp; CSV
+                    <ArrowUpRightIcon className="size-3" />
+                  </Link>
                 </div>
                 <CoinsIcon className="size-4 text-signal" />
               </div>

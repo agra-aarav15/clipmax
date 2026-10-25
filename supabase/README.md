@@ -19,6 +19,8 @@ Apply the files in `supabase/migrations` in date order:
 3. `20261024182000_billing.sql` — pending/paused/completed subscription states and lookup index.
 4. `20261024190000_rate_limits.sql` — fixed-window API rate limits, service-role only.
 5. `20261024191000_free_plan_renewal.sql` — idempotent monthly free-plan grant.
+6. `20261025120000_hardening.sql` — atomic project/retry RPCs, checkout serialization, ordered
+   subscription events, webhook claim/retry, and worker ownership checks.
 
 Verify the migration chain without a hosted project or Docker:
 

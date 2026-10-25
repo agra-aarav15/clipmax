@@ -1,9 +1,10 @@
-import { ArrowLeftIcon, CheckIcon } from "lucide-react";
+﻿import { ArrowLeftIcon, CheckIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
 import { SignupForm } from "@/components/auth/signup-form";
 import { ClipMaxMark } from "@/components/brand/clipmax-mark";
+import { dashboardNextPath } from "@/lib/navigation";
 
 export const metadata: Metadata = {
   title: "Start clipping free",
@@ -55,20 +56,18 @@ export default async function SignupPage({
   const params = await searchParams;
   const source = first(params.source);
   const intent = first(params.intent);
+  const requestedNext = first(params.next);
   const mode = first(params.mode) === "signin" ? "signin" : "signup";
   const isSignin = mode === "signin";
   const error = first(params.error);
 
-  const nextPath = source
-    ? `/dashboard?source=${encodeURIComponent(source)}`
-    : intent === "upload"
-      ? "/dashboard?intent=upload"
-      : "/dashboard";
+  const nextPath = dashboardNextPath({ source, intent, next: requestedNext });
 
   const switchParams = new URLSearchParams();
   switchParams.set("mode", isSignin ? "signup" : "signin");
   if (source) switchParams.set("source", source);
   if (intent) switchParams.set("intent", intent);
+  if (requestedNext) switchParams.set("next", requestedNext);
 
   const sourceLabel = readSourceLabel(source, intent);
   const initialError = readErrorMessage(error);
@@ -76,8 +75,8 @@ export default async function SignupPage({
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-[#08090a]">
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_78%_0%,rgba(0,71,171,0.22),transparent_65%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_40%_at_10%_60%,rgba(0,71,171,0.22),transparent_68%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_78%_0%,rgba(21,94,239,0.22),transparent_65%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_40%_at_10%_60%,rgba(21,94,239,0.22),transparent_68%)]" />
         <div className="absolute inset-0 hero-dots [mask-image:linear-gradient(to_bottom,black,transparent_85%)] opacity-25" />
         <div className="absolute inset-0 film-grain opacity-[0.04] mix-blend-overlay" />
       </div>
@@ -167,9 +166,26 @@ export default async function SignupPage({
       </main>
 
       <footer className="relative z-10 mt-auto border-t border-white/[0.06]">
-        <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-2 px-5 py-4 font-mono text-[8px] tracking-[0.14em] text-zinc-600 uppercase sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <span>© 2026 ClipMax</span>
-          <span>Private beta · Built for the long version</span>
+        <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+          <span className="font-mono text-[8px] tracking-[0.14em] text-zinc-600 uppercase">
+            © 2026 ClipMax · Private beta
+          </span>
+          <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {[
+              { href: "/privacy", label: "Privacy" },
+              { href: "/terms", label: "Terms" },
+              { href: "/refund", label: "Refunds" },
+              { href: "/support", label: "Support" },
+            ].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="font-mono text-[8px] tracking-[0.14em] text-zinc-600 uppercase transition-colors hover:text-zinc-300"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </footer>
     </div>

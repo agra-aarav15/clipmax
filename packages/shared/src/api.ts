@@ -59,7 +59,7 @@ export interface CaptionStyle {
 export const DEFAULT_CAPTION_STYLE: CaptionStyle = {
   preset: "beast_bold",
   font_size: 24,
-  highlight_color: "#89CFF0",
+  highlight_color: "#9BE7FF",
 };
 
 export const captionStyleSchema = z.object({

@@ -1,4 +1,4 @@
-import {
+﻿import {
   MAX_SOURCE_DURATION_MINUTES,
   OFFERED_PLAN_TIERS,
   PLAN_CATALOG,
@@ -35,7 +35,7 @@ export function PricingSection() {
       className="relative scroll-mt-24 overflow-hidden border-b border-white/[0.06]"
     >
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_40%_at_72%_8%,rgba(0,71,171,0.16),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_40%_at_72%_8%,rgba(21,94,239,0.16),transparent_70%)]" />
       </div>
 
       <div className="mx-auto max-w-[1320px] px-5 py-24 sm:px-8 sm:py-28 lg:py-32">
@@ -83,7 +83,7 @@ export function PricingSection() {
                 data-reveal
                 className={
                   highlighted
-                    ? "relative rounded-2xl bg-gradient-to-b from-signal/45 via-white/10 to-white/[0.04] p-px shadow-[0_45px_120px_-60px_rgba(0,71,171,0.75)]"
+                    ? "relative rounded-2xl bg-gradient-to-b from-signal/45 via-white/10 to-white/[0.04] p-px shadow-[0_45px_120px_-60px_rgba(21,94,239,0.75)]"
                     : "relative rounded-2xl border border-white/[0.08] bg-white/[0.02] p-px"
                 }
               >

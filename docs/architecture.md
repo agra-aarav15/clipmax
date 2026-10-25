@@ -53,8 +53,10 @@ an entire moving part while preserving lease-based claiming and retry semantics.
 3. It returns a presigned `PUT` valid for **15 minutes**, with the exact `Content-Type` the client
    must send. The signature is bound to that header.
 4. The browser uploads with `XMLHttpRequest` to get real progress. Bytes go browser → R2 directly.
-5. `POST /api/projects/:id/initiate` performs a `HeadObject`, verifies existence and size, flips the
-   project to `ready`, and inserts the first `processing_jobs` row. It is idempotent.
+5. `POST /api/projects/:id/initiate` performs a `HeadObject`, verifies existence and size, then calls
+   `begin_upload_processing()`. One transaction reserves credits, records the verified size, flips
+   the project to `ready`, and inserts the first `processing_jobs` row. There is no compensation
+   chain to drift out of sync, and a repeated call cannot charge twice.
 
 Why not `fetch`: `fetch` cannot report upload progress. Why not multipart in v1: single PUT covers
 the 500 MB cap; multipart is a later optimisation for larger files.
@@ -67,9 +69,11 @@ not a serverless function.
 1. The API inserts a `processing_jobs` row.
 2. The worker claims work with `claim_next_job()` — `FOR UPDATE SKIP LOCKED`, lease timestamp,
    attempt counter — and processes until the queue is empty or the time budget is spent.
-3. Every step writes progress to the job row. While a project is active, the studio polls the
-   server-rendered page every 5 seconds. Supabase Realtime can replace polling without changing the
-   job rows or the pipeline.
+3. Every step writes progress to the job row through `update_job_progress()`, which verifies the
+   worker id that holds the lease. A heartbeat thread renews the lease during long transcodes. A
+   worker that loses the lease stops writing; the new owner continues from the database state.
+   While a project is active, the studio polls the server-rendered page every 5 seconds. Supabase
+   Realtime can replace polling without changing the job rows or the pipeline.
 4. The worker exposes `/healthz` for liveness and reports whether FFmpeg, ffprobe, and the libass
    `ass` filter are ready. Production work is driven by the claim loop.
 
@@ -94,17 +98,31 @@ Pipeline steps:
 | publish          | upload to R2, update `clips`, complete the job         |
 
 Failure semantics: retry with exponential backoff up to `max_attempts`; permanent failure marks the
-project `failed`, refunds reserved credits, and stores a sanitized error message.
+project `failed`, marks unfinished clips `failed`, refunds reserved credits, and stores a sanitized
+error message. Job completion and failure RPCs require the owning worker id, so a reclaimed lease
+cannot overwrite the new owner's state. A render job whose requested clips are all already rendered
+completes successfully instead of failing and refunding.
 
 ## 5. Billing path
 
 - Razorpay is the source of truth. The client callback is never trusted.
-- `POST /api/webhooks/razorpay` reads the **raw** body, verifies `X-Razorpay-Signature` with
-  HMAC-SHA256 and a constant-time compare, then records the event in `webhook_events` keyed by
-  Razorpay event id. Replays are no-ops.
+- `POST /api/webhooks/razorpay` reads the **raw** body with a 256 KB cap, verifies
+  `X-Razorpay-Signature` with HMAC-SHA256 and a constant-time compare, then claims the event in
+  `webhook_events` before any side effect. A duplicate delivery sees the claim and cannot
+  double-grant; a failed handler releases the event with a short backoff so Razorpay's retry can
+  succeed.
+- Ownership is resolved only from the `provider_subscription_id` stored before Checkout opens.
+  Notes are not trusted for routing. An event for an unknown subscription is recorded and
+  acknowledged rather than retried forever.
+- Subscription status changes go through `apply_subscription_event()`, which rejects out-of-order
+  events by timestamp, keeps terminal states terminal, and preserves a locally scheduled
+  cancellation across a later `subscription.updated` event.
 - Grants run inside a `SECURITY DEFINER` function with an idempotency key, so a duplicated webhook
   cannot duplicate credits.
 - Signature failures return 400 and are logged; they never touch the ledger.
+- Checkout creation is serialized by `begin_checkout()`: two tabs cannot create two remote
+  subscriptions, a fresh attempt inside the cooldown reuses the attached one, and a superseded
+  attempt's remote subscription is cancelled.
 - Free accounts receive 30 credits once per UTC month from `renew_free_plan_credits()`, called by
   the protected `/api/cron/renew-free-credits` route. The ledger key is `monthly:<userId>:<YYYY-MM>`,
   so a retried cron run grants nothing twice. Accounts created in the current month are skipped so
@@ -118,7 +136,10 @@ costs 15 credits. Free = 30 credits/month, Starter = 150 credits/month.
 - Balance lives in `credit_wallets` (cached) and is reconciled against the append-only
   `credit_ledger`.
 - Only database functions mutate credits; `authenticated` has no `INSERT` grant on the ledger.
-- Reservations are debited before a render and refunded on permanent failure.
+- Reservations are debited before a render. After the worker probes the real duration it calls
+  `settle_project_credits()`, which refunds the unused hold; a permanent failure refunds the rest.
+  Each retry uses a fresh reservation key, so a second refund is not swallowed by the first one's
+  ledger entry.
 - Plan limits are enforced server-side in the API and in SQL, never in the UI.
 - The monthly free grant is additive, like the Starter webhook grant: unused credits stay in the
   wallet until spent.

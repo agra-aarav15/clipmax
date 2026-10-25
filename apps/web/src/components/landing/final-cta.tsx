@@ -1,4 +1,4 @@
-import { ArrowUpRightIcon, CheckIcon } from "lucide-react";
+﻿import { ArrowUpRightIcon, CheckIcon } from "lucide-react";
 import Link from "next/link";
 
 import { ScrollFloat } from "@/components/landing/scroll-float";
@@ -10,8 +10,8 @@ export function FinalCta() {
   return (
     <section className="relative isolate overflow-hidden">
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_55%_at_50%_8%,rgba(0,71,171,0.28),transparent_68%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_35%_30%_at_50%_28%,rgba(137,207,240,0.08),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_55%_at_50%_8%,rgba(21,94,239,0.28),transparent_68%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_35%_30%_at_50%_28%,rgba(155,231,255,0.08),transparent_70%)]" />
         <div className="absolute top-1/2 left-1/2 size-[78rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.035]" />
         <div className="absolute top-1/2 left-1/2 size-[56rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.04]" />
         <div className="absolute top-1/2 left-1/2 size-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.05]" />
@@ -32,7 +32,7 @@ export function FinalCta() {
             textClassName="inline-block pb-[0.08em] font-serif text-[clamp(2.6rem,6.8vw,5.6rem)] leading-[0.95] font-normal tracking-[-0.035em] text-white italic"
             effect="float"
             splitBy="words"
-            fromColor="#89cff0"
+            fromColor="#9be7ff"
             scrollStart="top bottom-=8%"
             scrollEnd="top 68%"
             stagger={0.05}
