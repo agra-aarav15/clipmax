@@ -39,4 +39,4 @@ pnpm db:types
 
 Do not add a local `config.toml`; project-level auth, storage, and database settings are managed in
 the Supabase dashboard for the hosted project. Enable the email and Google providers, and add
-`http://localhost:3000/auth/callback` plus the production callback to the redirect allow list.
+`http://localhost:3200/auth/callback` plus the production callback to the redirect allow list.

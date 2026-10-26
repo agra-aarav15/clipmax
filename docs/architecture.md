@@ -1,9 +1,11 @@
 # ClipMax Architecture
 
 Status: Phases 1–7 are implemented in code, including rate limits, monthly free-plan renewal, and
-the deployment runbook. Hosted integration (Supabase, R2, Razorpay), a committed RLS CI suite,
-observability, and the actual deployment are still pending. Statements below describe the behaviour
-enforced by the current code unless they are explicitly marked as future work.
+the deployment runbook. Hosted Supabase is applied and verified; R2, Razorpay, a committed RLS CI
+suite, observability, and the actual deployment are still pending. The frontend has been rejected
+and is being rebuilt externally from `FRONTEND_PROMPT.md`; the API contracts below stay. Statements
+below describe the behaviour enforced by the current code unless they are explicitly marked as
+future work.
 
 ## 1. Goals
 
@@ -15,7 +17,8 @@ enforced by the current code unless they are explicitly marked as future work.
 - Run the whole system as native processes: Node for the web, Python for the worker, with hosted
   Supabase and R2 for state.
 
-Non-goals for v1: teams/organisations, YouTube ingestion, live streaming, mobile apps.
+Non-goals for v1: teams/organisations, live streaming, mobile apps, a full timeline editor,
+auto-posting, and public share links.
 
 ## 2. Topology
 
@@ -180,7 +183,7 @@ file until cleanup.
   migrations before promoting the app.
 - The worker runs under a dedicated unprivileged OS account. Its environment comes from a protected
   systemd `EnvironmentFile`, never from source control or a committed image layer.
-- R2 CORS is restricted to the production origin and `http://localhost:3000`.
+- R2 CORS is restricted to the production origin and `http://localhost:3200`.
 
 ## 10. Deployment **(Phase 7)**
 
@@ -200,12 +203,12 @@ file until cleanup.
 
 ## 11. Phase map
 
-| Phase | Adds                                                       | State                             |
-| ----- | ---------------------------------------------------------- | --------------------------------- |
-| 1     | monorepo, shared contracts, landing shell, worker skeleton | Complete                          |
-| 2     | schema, RLS, credit functions, job queue                   | Code complete; apply to hosted DB |
-| 3     | presign/initiate/download routes, upload hook              | Code complete; needs R2 keys      |
-| 4     | worker pipeline and rendering                              | Code complete; needs provider key |
-| 5     | dashboard, upload flow, results, review                    | Code complete                     |
-| 6     | Razorpay checkout + webhook + credit grants                | Code complete; needs test keys    |
-| 7     | rate limits, free renewal, runbook, deployment             | In progress; deploy needs keys    |
+| Phase | Adds                                                       | State                                 |
+| ----- | ---------------------------------------------------------- | ------------------------------------- |
+| 1     | monorepo, shared contracts, landing shell, worker skeleton | Complete                              |
+| 2     | schema, RLS, credit functions, job queue                   | Complete; applied to hosted project   |
+| 3     | presign/initiate/download routes, upload hook              | Code complete; needs R2 keys          |
+| 4     | worker pipeline and rendering                              | Code complete; needs provider key     |
+| 5     | landing, auth, studio, upload flow, results, billing       | Rejected; external rebuild            |
+| 6     | Razorpay checkout + webhook + credit grants                | Code complete; needs test keys        |
+| 7     | rate limits, free renewal, runbook, deployment             | In progress; needs R2/Razorpay/domain |

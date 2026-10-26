@@ -1,10 +1,11 @@
 # ClipMax Deployment Runbook
 
-Status: written 24 Oct 2026. The code is complete; this runbook is the credential-backed path from
-`F:\ClipMax` to a working production URL. It assumes no hosted resources exist yet.
+Status: written 24 Oct 2026; updated 26 Oct 2026. Hosted Supabase exists and is verified; R2,
+Razorpay, the production host, and the domain are still missing. This is the credential-backed path
+from `F:\ClipMax` to a working production URL.
 
-Read this with `PLAN.md` §6 (definition of done) and `HANDOFF.md`. Do not mark a step done because a
-command exited 0 — use the stated check for each step.
+Read this with `CLIPMAX.md` §7 (definition of done) and `HANDOFF.md`. Do not mark a step done because
+a command exited 0 — use the stated check for each step.
 
 ---
 
@@ -21,7 +22,11 @@ Launch only when all of these are true:
 - [ ] `/api/health` returns `ready: true` and `/healthz` returns `media_ready: true`.
 - [ ] Rate-limit migration is applied; a 31st presign in an hour returns 429.
 - [ ] Free-plan renewal runs once and is idempotent on a second call.
-- [ ] Landing, signup, dashboard, and error states pass at 390 / 768 / 1440 px.
+- [ ] Landing, signup, dashboard, results, billing, settings, and error states pass at 390 / 768 /
+      1440 px in **both light and dark**.
+- [ ] The chosen frontend direction is built, no fake data is presented as real, and every sample is
+      visibly labelled.
+- [ ] The static GitHub Pages preview still builds under `/clipmax`.
 - [ ] `./scripts/verify.ps1` is green on the deployed commit (it includes `pnpm db:verify`).
 
 If any payment or auth check cannot run, launch with billing explicitly unavailable and a waitlist.
@@ -40,8 +45,8 @@ Never simulate a successful charge.
 | R2 location     | automatic (or closest to the worker)           | source upload and clip delivery      |
 | Support inbox   | real monitored address                         | billing failures, data deletion      |
 
-Write these into `PLAN.md` §0 when chosen. `vercel.json` is intentionally not committed because the
-web host is still open; configure the cron in the chosen host's dashboard (§6).
+Write these into `CLIPMAX.md` §5 and §9 when chosen. `vercel.json` is intentionally not committed
+because the web host is still open; configure the cron in the chosen host's dashboard (§6).
 
 ---
 

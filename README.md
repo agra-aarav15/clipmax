@@ -13,45 +13,50 @@ to hosted Supabase and R2, so both services run natively on the developer's mach
 ## Live design preview
 
 [Open the static design preview](https://aarav.runs-on.dev/clipmax/) (source: [apps/site](apps/site)).
-The six landing-page directions under consideration are at
-[the direction board](https://aarav.runs-on.dev/clipmax/directions/).
 
-GitHub Pages serves the real landing page from `apps/site` under `/clipmax`. This is a design
-preview, not the working studio: sign-in, uploads, processing, and billing live in the full Next.js
-app and need hosted Supabase, R2, worker, and Razorpay credentials. The preview routes state that
-boundary instead of showing fake data.
+The frontend has been **rejected**. Track B is assigned to an external builder; the brief is
+[FRONTEND_PROMPT.md](FRONTEND_PROMPT.md). The working direction is **The Rundown**: a light-first
+broadcast edit desk with warm paper and ink, one safety-orange signal, timecode rails, and real
+clips. The builder delivers 5–10 coded references first, then one full-app build; the founder
+reviews the references before the final direction is locked.
+
+The current preview and the six-direction board are the old cobalt/ice exploration. They stay live
+as history until the rebuild lands, but they are **not the target design**. GitHub Pages serves the
+landing from `apps/site` under `/clipmax`. It is a static preview, not the working studio: sign-in,
+uploads, processing, and billing live in the full Next.js app and need hosted Supabase, R2, worker,
+and Razorpay credentials. The preview routes state that boundary instead of showing fake data.
 
 ## Status
 
 | Phase | Scope                                               | State                                                                            |
 | ----- | --------------------------------------------------- | -------------------------------------------------------------------------------- |
 | 1     | Repo scaffolding, shared contracts, navbar and hero | **Complete**                                                                     |
-| 2     | Supabase schema, RLS, credits, job queue            | **Code complete** (apply migrations to hosted project)                           |
+| 2     | Supabase schema, RLS, credits, job queue            | **Complete and applied** to the hosted project                                   |
 | 3     | R2 presigned upload API + project lifecycle         | **Code complete** (needs R2 keys)                                                |
-| 4     | Worker pipeline: transcribe → highlights → render   | **Code complete** (needs FFmpeg + AI provider)                                   |
-| 5     | Frontend: dashboard, upload, results, review        | **Code complete** (no full NLE, by design)                                       |
+| 4     | Worker pipeline: transcribe → highlights → render   | **Code complete** (needs R2 keys and an AI provider)                             |
+| 5     | Frontend: landing, auth, studio, results, billing   | **Rejected; external rebuild** from [FRONTEND_PROMPT.md](FRONTEND_PROMPT.md)     |
 | 6     | Razorpay webhook + credit enforcement               | **Code complete** (needs test/live Razorpay keys)                                |
 | 7     | Hardening, deploy, launch                           | **In progress** — static preview live; production needs credentials and a domain |
 
-There is no mock data anywhere in this repository. Missing credentials produce a specific
-configuration state, never a fake success. The studio now has real project rows, signed clip
-playback, transcript disclosure, downloads, retry, delete, credit ledger, Razorpay checkout,
-server-side rate limits, and a monthly free-plan renewal.
+There is no fake data presented as real. Missing credentials produce a specific configuration state,
+never a fake success. The studio now has real project rows, signed clip playback, transcript
+disclosure, downloads, retry, delete, credit ledger, Razorpay checkout, server-side rate limits, and
+a monthly free-plan renewal.
 
-### Verification status (25 Oct 2026)
+### Verification status (26 Oct 2026)
 
 Verified locally without hosted credentials:
 
-- `pnpm --filter @clipmax/web typecheck`, `lint`, and a production `build` pass.
+- `pnpm typecheck`, `pnpm lint`, and the web production build pass.
+- `pnpm db:verify` applies all six Supabase migrations to PostgreSQL 18 (PGlite) with stubbed
+  Supabase auth and passes 100 executable checks: signup grant, monthly renewal idempotency,
+  fixed-window rate limiting, RLS cross-tenant isolation, reservation/settle/refund accounting,
+  checkout serialization, webhook claim/retry idempotency, ordered subscription events, and worker
+  lease ownership.
 - Worker `pytest` (26 tests), `ruff`, and `mypy --strict` pass.
 - A synthetic source renders through the real FFmpeg path: 1080×1920, H.264/AAC, burned ASS
   captions with word-level highlight, verified by ffprobe.
 - Razorpay webhook and checkout HMAC verification pass positive and tamper-negative tests.
-- `pnpm db:verify` applies all six Supabase migrations to PostgreSQL 18 (PGlite) with stubbed
-  Supabase auth and proves the signup grant, monthly renewal idempotency, fixed-window rate
-  limiting, RLS cross-tenant isolation, reservation/settle/refund accounting, checkout
-  serialization, webhook claim/retry idempotency, ordered subscription events, and worker lease
-  ownership.
 - `/api/health` reports real readiness: 503 with `ready: false` when Supabase/R2 are missing, 200
   only when the core integrations are configured. `/api/cron/renew-free-credits` rejects missing or
   wrong `CRON_SECRET` values.
@@ -59,14 +64,15 @@ Verified locally without hosted credentials:
   functions, the auth-user trigger, and 8 RLS policies. An Admin-API user creation produced a
   profile, a 30-credit wallet, and a `grant_signup` ledger row; anon REST reads of `profiles`
   returned `[]`. QA users were removed afterwards.
-- The GitHub Pages build serves the real landing at 1440 and 390 px with no horizontal overflow,
-  console errors, or failed requests. `/signup` and `/dashboard` there are preview-boundary pages,
-  not mock product screens.
+- The GitHub Pages build serves the landing under `/clipmax` with no horizontal overflow, console
+  errors, or failed requests. `/signup` and `/dashboard` there are preview-boundary pages, not mock
+  product screens.
 
 Still unverified because R2 and Razorpay keys are not configured: a real upload/signing round trip,
-real transcription/render, Razorpay test checkout and webhook delivery, and deployment. The
-Supabase half is proven; the browser magic-link callback still needs the hosted Site URL set to
-`http://localhost:3200`. Follow [docs/runbook.md](docs/runbook.md) for the credential-backed pass.
+real transcription and a real hosted render, Razorpay test checkout and webhook delivery, and
+deployment. The Supabase half is proven at the API/DB level; the browser magic-link and Google round
+trips still need the hosted Site URL set to `http://localhost:3200`. Follow
+[docs/runbook.md](docs/runbook.md) for the credential-backed pass.
 
 ## Stack
 
@@ -81,11 +87,12 @@ Both services are native processes; the repository contains no image or orchestr
 ## Layout
 
 ```text
-apps/web          Next.js application
+apps/web          Next.js application (landing, auth, studio, API)
+apps/site         Static GitHub Pages preview (landing + historical design pages)
 apps/worker       Native Python worker (uv + system FFmpeg)
 packages/shared   Types, zod schemas, credit rules, status enums
 contracts/        JSON Schemas shared by TypeScript and Python
-supabase/         Remote migrations, RLS, tests (Phase 2)
+supabase/         Remote migrations, RLS, SQL verification fixtures
 docs/             Architecture, data model, API contracts, runbook
 scripts/          Local PowerShell helpers
 ```
@@ -126,7 +133,7 @@ Copy-Item apps/web/.env.example apps/web/.env.local
 # 3. fill in the hosted Supabase and R2 credentials in both files
 
 # 4. web app
-pnpm dev            # http://localhost:3000
+pnpm --filter @clipmax/web dev --port 3200   # http://localhost:3200
 
 # 5. worker (separate shell)
 ./scripts/dev-worker.ps1
@@ -148,7 +155,7 @@ There is no local Supabase stack and no object-store emulator.
 - **Supabase:** create a hosted project, enable email and Google auth, and copy the project URL and
   keys into the env files. Phase 2 adds migrations under `supabase/migrations`; link once with
   `pnpm db:link`, then apply with `pnpm db:push` and regenerate types with `pnpm db:types`.
-- **R2:** create a private bucket and an S3 API token. Add a CORS rule for `http://localhost:3000`
+- **R2:** create a private bucket and an S3 API token. Add a CORS rule for `http://localhost:3200`
   and the production origin. Only `PUT` and `GET` are needed for direct uploads and signed previews.
 - **Worker:** use the hosted Supabase service role key and the R2 S3 credentials. Both are server
   secrets and never use a `NEXT_PUBLIC_` prefix.
