@@ -109,6 +109,24 @@ def test_fail_job_reports_ownership_and_permanence() -> None:
     assert store.deleted == ["renders/partial/clip.mp4", "renders/partial/thumb.jpg"]
 
 
+def test_fail_job_keeps_objects_when_the_lease_was_lost() -> None:
+    rest = FakeRest(
+        result=False,
+        clips=[{"storage_path": "renders/partial/clip.mp4", "thumbnail_path": None}],
+    )
+    store = FakeStore()
+
+    _fail_job(
+        make_context(rest, store=store),
+        {"id": "job-1", "project_id": "project-1", "attempts": 3, "max_attempts": 3},
+        "boom",
+        permanent=False,
+    )
+
+    assert rest.calls[-1][0] == "fail_job"
+    assert store.deleted == []
+
+
 def test_select_render_clips_skips_already_rendered_clips() -> None:
     matching, pending = _select_render_clips(
         [

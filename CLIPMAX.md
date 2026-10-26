@@ -165,10 +165,10 @@ them as the target.
 ### 3.3 Verified locally (evidence in §8)
 
 - **26 Oct 2026 full local suite:** `pnpm typecheck`, `pnpm lint`, the web production build,
-  `pnpm db:verify` (119 executable SQL checks across seven migrations), 26 worker pytest tests,
+  `pnpm db:verify` (119 executable SQL checks across seven migrations), 27 worker pytest tests,
   ruff, mypy `--strict`, and the `/clipmax` Pages export all pass.
 - Web: typecheck, lint, production build.
-- Worker: 26 pytest tests, ruff, mypy `--strict`, all green on 26 Oct 2026.
+- Worker: 27 pytest tests, ruff, mypy `--strict`, all green on 26 Oct 2026.
 - Media: a synthetic source renders 1080×1920 H.264/AAC with burned ASS captions; ffprobe confirms.
 - Razorpay HMAC: valid and tampered cases.
 - SQL: all seven migrations apply to PostgreSQL 18 (PGlite with stubbed Supabase auth) plus 119
@@ -449,7 +449,7 @@ $env:MSYS_NO_PATHCONV='1'; $env:PAGES_BASE_PATH='/clipmax'; pnpm --filter @clipm
 | 26 Oct 26 | Full local suite green                                   | `pnpm typecheck`, `pnpm lint`, web production build — exit 0         |
 | 26 Oct 26 | Backend audit fixes verified                             | 11 findings fixed; suite re-run after the checkout/R2/worker changes |
 | 26 Oct 26 | 119 SQL checks green                                     | `pnpm db:verify` applied seven migrations, 119 checks passed         |
-| 26 Oct 26 | Worker tests, lint, strict types                         | 26 pytest passed; ruff clean; mypy no issues (11 files)              |
+| 26 Oct 26 | Worker tests, lint, strict types                         | 27 pytest passed; ruff clean; mypy no issues (11 files)              |
 | 26 Oct 26 | Static Pages export green                                | `build:pages` under `/clipmax`, all routes generated                 |
 | 25 Oct 26 | Web typecheck, lint, production build                    | `pnpm typecheck`, `pnpm lint`, `next build` — all exit 0             |
 | 25 Oct 26 | Worker tests, lint, strict types                         | 26 pytest passed; ruff clean; mypy no issues (11 files)              |

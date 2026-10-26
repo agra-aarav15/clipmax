@@ -677,9 +677,11 @@ def _fail_job(
     max_attempts = int(job.get("max_attempts") or 1)
     terminal = permanent or attempts >= max_attempts
 
-    # A terminal failure refunds the whole project. Delete any clips that already rendered so the
-    # customer cannot keep partial output for free. Best effort: the SQL terminal branch also clears
-    # the paths, and account deletion sweeps the user's prefixes.
+    # A terminal failure refunds the whole project. Capture any clips that already rendered, report
+    # the failure, and delete the objects only if this worker still owned the lease. Deleting before
+    # the ownership check could remove a new owner's output after a reclaimed lease. Best effort:
+    # the SQL terminal branch clears the paths, and account deletion sweeps the user's prefixes.
+    captured: list[str] = []
     if terminal:
         try:
             clips = context.rest.select("clips", [("project_id", f"eq.{project_id}")])
@@ -687,12 +689,7 @@ def _fail_job(
                 for field in ("storage_path", "thumbnail_path"):
                     key = clip.get(field)
                     if isinstance(key, str) and key:
-                        try:
-                            context.store.delete(key)
-                        except Exception:
-                            logger.warning(
-                                "could not delete failed render object %s", key, exc_info=True
-                            )
+                        captured.append(key)
         except Exception:
             logger.warning("could not list clips for terminal cleanup", exc_info=True)
 
@@ -708,8 +705,16 @@ def _fail_job(
         )
         if failed is not True:
             logger.error("job %s was no longer owned when failure was reported", job_id)
+            return
     except Exception:
         logger.exception("could not persist job failure")
+        return
+
+    for key in captured:
+        try:
+            context.store.delete(key)
+        except Exception:
+            logger.warning("could not delete failed render object %s", key, exc_info=True)
 
 
 def _safe_float(value: Any) -> float:

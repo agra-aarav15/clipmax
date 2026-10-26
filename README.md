@@ -59,7 +59,7 @@ Verified locally without hosted credentials:
   fixed-window rate limiting, RLS cross-tenant isolation, reservation/settle/refund accounting,
   checkout reuse/stale/clear/reconcile, webhook claim/retry idempotency, ordered subscription
   events, worker lease ownership, final-attempt reaping, and terminal clip cleanup.
-- Worker `pytest` (26 tests), `ruff`, and `mypy --strict` pass.
+- Worker `pytest` (27 tests), `ruff`, and `mypy --strict` pass.
 - A synthetic source renders through the real FFmpeg path: 1080×1920, H.264/AAC, burned ASS
   captions with word-level highlight, verified by ffprobe.
 - Razorpay webhook and checkout HMAC verification pass positive and tamper-negative tests.
