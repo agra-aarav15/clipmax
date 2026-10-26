@@ -333,6 +333,10 @@ Rules:
 
 This phase is mandatory. Do not jump to the final build.
 
+**Hard stop:** finish the references, the scorecard, and the recommendation, then stop. Do not start
+Phase 2 until the founder picks a direction or the decision rule below is applied. Commit the
+reference sprint as its own commit before the final build begins.
+
 ### What to produce
 
 Create a temporary design lab route (for example `/design-lab`) that is not linked from production
