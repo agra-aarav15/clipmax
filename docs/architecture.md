@@ -101,10 +101,13 @@ Pipeline steps:
 | publish          | upload to R2, update `clips`, complete the job         |
 
 Failure semantics: retry with exponential backoff up to `max_attempts`; permanent failure marks the
-project `failed`, marks unfinished clips `failed`, refunds reserved credits, and stores a sanitized
-error message. Job completion and failure RPCs require the owning worker id, so a reclaimed lease
-cannot overwrite the new owner's state. A render job whose requested clips are all already rendered
-completes successfully instead of failing and refunding.
+project `failed`, marks unfinished clips `failed`, clears every rendered clip path (the objects are
+deleted by the worker and swept again by account deletion), stops sibling jobs, refunds reserved
+credits, and stores a sanitized error message. Job completion and failure RPCs require the owning
+worker id, so a reclaimed lease cannot overwrite the new owner's state. `claim_next_job()` reaps
+expired leases: attempts left are requeued, a final attempt is failed and refunded once. A render job
+whose requested clips are all already rendered completes successfully instead of failing and
+refunding.
 
 ## 5. Billing path
 
@@ -123,9 +126,13 @@ completes successfully instead of failing and refunding.
 - Grants run inside a `SECURITY DEFINER` function with an idempotency key, so a duplicated webhook
   cannot duplicate credits.
 - Signature failures return 400 and are logged; they never touch the ledger.
-- Checkout creation is serialized by `begin_checkout()`: two tabs cannot create two remote
-  subscriptions, a fresh attempt inside the cooldown reuses the attached one, and a superseded
-  attempt's remote subscription is cancelled.
+- Checkout creation is serialized by `begin_checkout()` under a per-user advisory lock. It returns
+  `manage`, `reuse`, `in_progress`, `stale`, or `create`; it never clears a remote subscription id
+  before the route has fetched that subscription's live status. A stale unpaid subscription is
+  cancelled and cleared only after two reads agree it is still `created`. A paid subscription whose
+  webhook is delayed is recorded locally by `confirm_paid_checkout()` instead of being cancelled.
+  An unknown or unreadable remote state fails closed with no charge. A superseded attempt's remote
+  subscription is cancelled, and a failed cancellation keeps the id so the next request can retry.
 - Free accounts receive 30 credits once per UTC month from `renew_free_plan_credits()`, called by
   the protected `/api/cron/renew-free-credits` route. The ledger key is `monthly:<userId>:<YYYY-MM>`,
   so a retried cron run grants nothing twice. Accounts created in the current month are skipped so

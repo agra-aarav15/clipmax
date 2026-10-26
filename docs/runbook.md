@@ -112,7 +112,13 @@ some values is safe. Production boot logs missing required groups; `/api/health`
    20261024190000_rate_limits.sql
    20261024191000_free_plan_renewal.sql
    20261025120000_hardening.sql
+   20261026120000_backend_hardening.sql
    ```
+
+   `20261026120000_backend_hardening.sql` adds the lease reaper, terminal clip cleanup, and the
+   checkout stale/clear/reconcile RPCs. Apply it **before** deploying the matching web and worker
+   code. The checkout route fails closed if it sees the legacy RPC response, so an out-of-order
+   deploy cannot take a second payment.
 
 3. In **Authentication → URL Configuration**:
 
@@ -133,6 +139,8 @@ some values is safe. Production boot logs missing required groups; `/api/health`
      'renew_free_plan_credits',
      'begin_checkout',
      'attach_checkout_subscription',
+     'clear_stale_checkout',
+     'confirm_paid_checkout',
      'claim_webhook_event',
      'apply_subscription_event',
      'heartbeat_job',
@@ -140,7 +148,7 @@ some values is safe. Production boot logs missing required groups; `/api/health`
      'fail_job'
    )
    order by proname;
-   -- expect all nine rows
+   -- expect all eleven rows
    ```
 
 7. Confirm RLS is on for every tenant table:

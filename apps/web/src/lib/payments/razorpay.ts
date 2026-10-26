@@ -8,14 +8,28 @@ type RazorpayErrorBody = {
   error?: { description?: string; code?: string };
 };
 
-type RazorpaySubscription = {
+export type RazorpaySubscription = {
   id: string;
   status?: string;
   customer_id?: string;
   short_url?: string | null;
+  current_start?: number | null;
+  current_end?: number | null;
+  cancel_at_cycle_end?: boolean | number | null;
+  paid_count?: number | null;
 };
 
-function apiError(status: number, body: string): Error {
+export class RazorpayApiError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "RazorpayApiError";
+    this.status = status;
+  }
+}
+
+function apiError(status: number, body: string): RazorpayApiError {
   let description = `Razorpay returned HTTP ${status}.`;
 
   try {
@@ -25,7 +39,17 @@ function apiError(status: number, body: string): Error {
     // Keep the status-based message.
   }
 
-  return new Error(description);
+  return new RazorpayApiError(status, description);
+}
+
+function basicAuth(config: BillingConfig): string {
+  return Buffer.from(`${config.keyId}:${config.keySecret}`).toString("base64");
+}
+
+function assertSubscriptionId(subscriptionId: string): void {
+  if (!/^sub_[A-Za-z0-9]+$/.test(subscriptionId)) {
+    throw new Error("The stored Razorpay subscription id is not valid.");
+  }
 }
 
 /**
@@ -90,6 +114,52 @@ export async function createSubscription(
 }
 
 /**
+ * Reads the live state of a subscription from Razorpay.
+ *
+ * Returns `null` when Razorpay does not know the id (for example a key-mode change or a deleted
+ * test subscription). Every other failure throws, because guessing at a remote state could cancel a
+ * paid subscription or start a second one.
+ */
+export async function fetchSubscription(
+  config: BillingConfig,
+  subscriptionId: string,
+): Promise<RazorpaySubscription | null> {
+  assertSubscriptionId(subscriptionId);
+
+  let response: Response;
+  try {
+    response = await fetch(`${RAZORPAY_API}/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Basic ${basicAuth(config)}`,
+        Accept: "application/json",
+      },
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch (cause) {
+    throw new Error("Could not reach Razorpay to verify the previous checkout.", { cause });
+  }
+
+  const body = await response.text();
+
+  if (response.status === 404) return null;
+  if (!response.ok) throw apiError(response.status, body);
+
+  let parsed: RazorpaySubscription;
+  try {
+    parsed = JSON.parse(body) as RazorpaySubscription;
+  } catch (cause) {
+    throw new Error("Razorpay returned an unreadable subscription response.", { cause });
+  }
+
+  if (!parsed.id) {
+    throw new Error("Razorpay returned a subscription without an id.");
+  }
+
+  return parsed;
+}
+
+/**
  * Cancels a subscription through Razorpay. `atCycleEnd` keeps access until the paid period ends;
  * an unpaid pending checkout is cancelled immediately so it can never charge later.
  */
@@ -98,11 +168,7 @@ export async function cancelSubscription(
   subscriptionId: string,
   atCycleEnd: boolean,
 ): Promise<{ status?: string; current_end?: number | null }> {
-  if (!/^sub_[A-Za-z0-9]+$/.test(subscriptionId)) {
-    throw new Error("The stored Razorpay subscription id is not valid.");
-  }
-
-  const basic = Buffer.from(`${config.keyId}:${config.keySecret}`).toString("base64");
+  assertSubscriptionId(subscriptionId);
 
   let response: Response;
   try {
@@ -111,7 +177,7 @@ export async function cancelSubscription(
       {
         method: "POST",
         headers: {
-          Authorization: `Basic ${basic}`,
+          Authorization: `Basic ${basicAuth(config)}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ cancel_at_cycle_end: atCycleEnd ? 1 : 0 }),

@@ -19,23 +19,46 @@ from clipmax_worker.pipeline import (
 )
 
 
+class FakeStore:
+    def __init__(self) -> None:
+        self.deleted: list[str] = []
+
+    def delete(self, key: str) -> None:
+        self.deleted.append(key)
+
+
 class FakeRest:
-    def __init__(self, result: Any = True) -> None:
+    def __init__(
+        self,
+        result: Any = True,
+        *,
+        clips: list[dict[str, Any]] | None = None,
+    ) -> None:
         self.result = result
+        self.clips = clips or []
         self.calls: list[tuple[str, dict[str, Any]]] = []
 
     def rpc(self, name: str, params: dict[str, Any]) -> Any:
         self.calls.append((name, params))
         return self.result
 
+    def select(self, table: str, filters: list[tuple[str, str]]) -> list[dict[str, Any]]:
+        return self.clips
 
-def make_context(rest: FakeRest, *, lease_seconds: float = 60) -> Any:
+
+def make_context(
+    rest: FakeRest,
+    *,
+    lease_seconds: float = 60,
+    store: FakeStore | None = None,
+) -> Any:
     return SimpleNamespace(
         settings=SimpleNamespace(
             job_lease_seconds=lease_seconds,
             max_source_duration_seconds=900,
         ),
         rest=rest,
+        store=store or FakeStore(),
         worker_id="worker-test",
     )
 
@@ -62,14 +85,28 @@ def test_require_lease_raises_when_the_job_was_reclaimed() -> None:
 
 
 def test_fail_job_reports_ownership_and_permanence() -> None:
-    rest = FakeRest()
+    rest = FakeRest(
+        clips=[
+            {
+                "storage_path": "renders/partial/clip.mp4",
+                "thumbnail_path": "renders/partial/thumb.jpg",
+            }
+        ]
+    )
+    store = FakeStore()
 
-    _fail_job(make_context(rest), "job-1", "boom", permanent=True)
+    _fail_job(
+        make_context(rest, store=store),
+        {"id": "job-1", "project_id": "project-1", "attempts": 1, "max_attempts": 3},
+        "boom",
+        permanent=True,
+    )
 
     name, params = rest.calls[-1]
     assert name == "fail_job"
     assert params["p_worker_id"] == "worker-test"
     assert params["p_permanent"] is True
+    assert store.deleted == ["renders/partial/clip.mp4", "renders/partial/thumb.jpg"]
 
 
 def test_select_render_clips_skips_already_rendered_clips() -> None:

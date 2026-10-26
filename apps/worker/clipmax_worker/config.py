@@ -1,10 +1,22 @@
 from __future__ import annotations
 
+import os
+import socket
 from functools import lru_cache
 from typing import Literal
+from uuid import uuid4
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def default_worker_id() -> str:
+    """A unique id per worker process.
+
+    The database lease is keyed by this string. A shared default such as `local` makes two replicas
+    indistinguishable, so a worker that lost its lease can still heartbeat or complete the job.
+    """
+    return f"{socket.gethostname()}:{os.getpid()}:{uuid4().hex[:8]}"
 
 
 class Settings(BaseSettings):
@@ -23,7 +35,7 @@ class Settings(BaseSettings):
 
     environment: Literal["development", "staging", "production", "test"] = "development"
     log_level: str = "INFO"
-    worker_id: str = "local"
+    worker_id: str = Field(default_factory=default_worker_id, min_length=1)
     worker_concurrency: int = Field(default=1, ge=1, le=32)
     worker_autostart: bool = True
     worker_poll_seconds: float = Field(default=5.0, ge=1.0, le=60.0)
@@ -79,6 +91,8 @@ class Settings(BaseSettings):
         account = (self.r2_account_id or "").strip()
         if not endpoint and not account:
             raise ValueError("R2_ENDPOINT or R2_ACCOUNT_ID is required")
+        if self.environment == "production" and self.worker_id.strip().lower() == "local":
+            raise ValueError("WORKER_ID must be unique per worker process in production")
         return self
 
     @property

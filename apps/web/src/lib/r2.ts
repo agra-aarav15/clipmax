@@ -3,6 +3,7 @@ import {
   DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -59,6 +60,11 @@ function client() {
       region: "auto",
       endpoint: config.endpoint,
       forcePathStyle: true,
+      // A presigned PUT is signed before the browser has the body. If the SDK adds a checksum
+      // parameter here it hashes an empty payload, and the real upload then fails with BadDigest.
+      // Only add checksums when an operation actually requires them.
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
       credentials: {
         accessKeyId: config.accessKeyId,
         secretAccessKey: config.secretAccessKey,
@@ -121,18 +127,17 @@ export async function deleteObject(key: string) {
  * Deletes up to 1000 keys per request. Used by account deletion, where leaving orphaned video
  * objects behind would break the promise made on the privacy page.
  */
-export async function deleteObjects(keys: string[]) {
+async function deleteObjectKeys(s3: S3Client, bucket: string, keys: string[]): Promise<number> {
   const unique = [...new Set(keys.filter((key) => key.trim().length > 0))];
   if (unique.length === 0) return 0;
 
-  const { client: s3, config } = client();
   let deleted = 0;
 
   for (let index = 0; index < unique.length; index += 1000) {
     const batch = unique.slice(index, index + 1000);
     const result = await s3.send(
       new DeleteObjectsCommand({
-        Bucket: config.bucket,
+        Bucket: bucket,
         Delete: { Objects: batch.map((Key) => ({ Key })), Quiet: true },
       }),
     );
@@ -147,6 +152,49 @@ export async function deleteObjects(keys: string[]) {
     }
 
     deleted += batch.length;
+  }
+
+  return deleted;
+}
+
+export async function deleteObjects(keys: string[]) {
+  const { client: s3, config } = client();
+  return deleteObjectKeys(s3, config.bucket, keys);
+}
+
+/**
+ * Deletes every object under the given prefixes. Account deletion uses this after the row-based
+ * sweep so objects orphaned by an old retry or a crashed worker cannot survive the account.
+ */
+export async function deletePrefixes(prefixes: string[]): Promise<number> {
+  const unique = [...new Set(prefixes.map((prefix) => prefix.trim()).filter(Boolean))];
+  if (unique.length === 0) return 0;
+
+  const { client: s3, config } = client();
+  let deleted = 0;
+
+  for (const prefix of unique) {
+    let continuationToken: string | undefined;
+
+    do {
+      const page = await s3.send(
+        new ListObjectsV2Command({
+          Bucket: config.bucket,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        }),
+      );
+
+      const keys = (page.Contents ?? [])
+        .map((object) => object.Key)
+        .filter((key): key is string => typeof key === "string" && key.length > 0);
+
+      if (keys.length > 0) {
+        deleted += await deleteObjectKeys(s3, config.bucket, keys);
+      }
+
+      continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (continuationToken);
   }
 
   return deleted;

@@ -43,16 +43,22 @@ never a fake success. The studio now has real project rows, signed clip playback
 disclosure, downloads, retry, delete, credit ledger, Razorpay checkout, server-side rate limits, and
 a monthly free-plan renewal.
 
+A read-only backend audit on 26 Oct found eleven issues; all are fixed and covered by the local
+suite. The fixes cover R2 presign checksums, account-deletion cleanup, unique worker ids, provider-
+matched LLM keys, terminal-failure and lease-reaper cleanup, retry render cleanup, and a checkout
+state machine that never cancels a paid subscription or loses an orphan id. The new migration must be
+applied before the matching checkout route is deployed; the route fails closed if it is not.
+
 ### Verification status (26 Oct 2026)
 
 Verified locally without hosted credentials:
 
 - `pnpm typecheck`, `pnpm lint`, and the web production build pass.
-- `pnpm db:verify` applies all six Supabase migrations to PostgreSQL 18 (PGlite) with stubbed
-  Supabase auth and passes 100 executable checks: signup grant, monthly renewal idempotency,
+- `pnpm db:verify` applies all seven Supabase migrations to PostgreSQL 18 (PGlite) with stubbed
+  Supabase auth and passes 119 executable checks: signup grant, monthly renewal idempotency,
   fixed-window rate limiting, RLS cross-tenant isolation, reservation/settle/refund accounting,
-  checkout serialization, webhook claim/retry idempotency, ordered subscription events, and worker
-  lease ownership.
+  checkout reuse/stale/clear/reconcile, webhook claim/retry idempotency, ordered subscription
+  events, worker lease ownership, final-attempt reaping, and terminal clip cleanup.
 - Worker `pytest` (26 tests), `ruff`, and `mypy --strict` pass.
 - A synthetic source renders through the real FFmpeg path: 1080×1920, H.264/AAC, burned ASS
   captions with word-level highlight, verified by ffprobe.
@@ -60,10 +66,12 @@ Verified locally without hosted credentials:
 - `/api/health` reports real readiness: 503 with `ready: false` when Supabase/R2 are missing, 200
   only when the core integrations are configured. `/api/cron/renew-free-credits` rejects missing or
   wrong `CRON_SECRET` values.
-- **Hosted Supabase is live** (project `eerqogsjvoswkqhhnhld`): all six migrations applied, 28
+- **Hosted Supabase is live** (project `eerqogsjvoswkqhhnhld`): six migrations applied, 28
   functions, the auth-user trigger, and 8 RLS policies. An Admin-API user creation produced a
   profile, a 30-credit wallet, and a `grant_signup` ledger row; anon REST reads of `profiles`
-  returned `[]`. QA users were removed afterwards.
+  returned `[]`. QA users were removed afterwards. The seventh migration
+  (`20261026120000_backend_hardening.sql`) is locally verified and still pending on the hosted
+  project; apply it before deploying the matching app code.
 - The GitHub Pages build serves the landing under `/clipmax` with no horizontal overflow, console
   errors, or failed requests. `/signup` and `/dashboard` there are preview-boundary pages, not mock
   product screens.

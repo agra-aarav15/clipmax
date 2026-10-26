@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireAdminClient, requireUser } from "@/lib/api/auth";
 import { AppError } from "@/lib/api/errors";
 import { handleRoute, jsonOk } from "@/lib/api/response";
-import { deleteObjects, isR2Configured } from "@/lib/r2";
+import { deleteObjects, deletePrefixes, isR2Configured } from "@/lib/r2";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,9 +13,42 @@ const bodySchema = z.object({
 });
 
 type StorageRow = {
+  id: string;
   storage_path: string | null;
   thumbnail_path?: string | null;
 };
+
+type AdminClient = ReturnType<typeof requireAdminClient>;
+
+const PAGE_SIZE = 1000;
+
+/** PostgREST caps a page at 1000 rows, so a single select can silently miss objects. */
+async function listAllStorageRows(
+  admin: AdminClient,
+  table: "projects" | "clips",
+  columns: string,
+  userId: string,
+): Promise<StorageRow[]> {
+  const rows: StorageRow[] = [];
+
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await admin
+      .from(table)
+      .select(columns)
+      .eq("user_id", userId)
+      .order("id", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) throw error;
+
+    const page = (data ?? []) as unknown as StorageRow[];
+    rows.push(...page);
+
+    if (page.length < PAGE_SIZE) break;
+  }
+
+  return rows;
+}
 
 export async function POST(request: Request) {
   return handleRoute(async () => {
@@ -48,29 +81,51 @@ export async function POST(request: Request) {
       );
     }
 
-    const [{ data: projects, error: projectsError }, { data: clips, error: clipsError }] =
-      await Promise.all([
-        admin
-          .from("projects")
-          .select("storage_path")
-          .eq("user_id", user.id)
-          .returns<StorageRow[]>(),
-        admin
-          .from("clips")
-          .select("storage_path, thumbnail_path")
-          .eq("user_id", user.id)
-          .returns<StorageRow[]>(),
-      ]);
+    // A worker can upload a render after the row sweep. Refuse deletion while any project or job is
+    // still moving, so the account cannot disappear underneath an active worker.
+    const [
+      { data: activeProjects, error: activeProjectsError },
+      { data: activeJobs, error: activeJobsError },
+    ] = await Promise.all([
+      admin
+        .from("projects")
+        .select("id")
+        .eq("user_id", user.id)
+        .in("status", ["uploading", "ready", "processing"])
+        .limit(1),
+      admin
+        .from("processing_jobs")
+        .select("id")
+        .eq("user_id", user.id)
+        .in("status", ["queued", "in_progress"])
+        .limit(1),
+    ]);
 
-    if (projectsError || clipsError) {
-      throw new AppError("INTERNAL_ERROR", "Could not list stored objects before deletion.", {
-        details: projectsError?.message ?? clipsError?.message,
+    if (activeProjectsError || activeJobsError) {
+      throw new AppError("INTERNAL_ERROR", "Could not check active work before deletion.", {
+        details: activeProjectsError?.message ?? activeJobsError?.message,
       });
     }
 
+    if ((activeProjects?.length ?? 0) > 0 || (activeJobs?.length ?? 0) > 0) {
+      throw new AppError(
+        "PROJECT_NOT_READY",
+        "A project is still uploading or processing. Wait for it to finish, or delete it, before deleting the account.",
+      );
+    }
+
+    const [projects, clips] = await Promise.all([
+      listAllStorageRows(admin, "projects", "id, storage_path", user.id),
+      listAllStorageRows(admin, "clips", "id, storage_path, thumbnail_path", user.id),
+    ]).catch((error: unknown) => {
+      throw new AppError("INTERNAL_ERROR", "Could not list stored objects before deletion.", {
+        details: error instanceof Error ? error.message : undefined,
+      });
+    });
+
     const keys = [
-      ...(projects ?? []).map((row) => row.storage_path),
-      ...(clips ?? []).flatMap((row) => [row.storage_path, row.thumbnail_path]),
+      ...projects.map((row) => row.storage_path),
+      ...clips.flatMap((row) => [row.storage_path, row.thumbnail_path]),
     ].filter((key): key is string => typeof key === "string" && key.length > 0);
 
     if (keys.length > 0 && !isR2Configured()) {
@@ -81,9 +136,12 @@ export async function POST(request: Request) {
     }
 
     let deletedObjects = 0;
-    if (keys.length > 0) {
+    if (isR2Configured()) {
       try {
-        deletedObjects = await deleteObjects(keys);
+        deletedObjects += await deleteObjects(keys);
+        // Defense in depth: remove objects left by an old retry or a crashed worker even when their
+        // rows are already gone. Both key prefixes are owned by this user.
+        deletedObjects += await deletePrefixes([`sources/${user.id}/`, `renders/${user.id}/`]);
       } catch (error) {
         throw new AppError(
           "INTERNAL_ERROR",

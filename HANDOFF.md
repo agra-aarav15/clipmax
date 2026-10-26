@@ -26,9 +26,10 @@ The **backend is code-complete and locally verified**: Supabase auth and Postgre
 uploads, the real Python/FFmpeg worker, credit reservations, Razorpay subscriptions, rate limits,
 cron renewal, legal pages, and a GitHub Pages preview. **Hosted Supabase is live and proven**
 (project `eerqogsjvoswkqhhnhld`): six migrations, 28 functions, the auth trigger, RLS, and the
-30-credit signup grant. R2 and Razorpay keys are still missing, so the upload → render → payment
+30-credit signup grant. A seventh hardening migration is locally verified and **not yet applied to
+the hosted project**. R2 and Razorpay keys are still missing, so the upload → render → payment
 path is unproven, and the browser auth round trip needs the hosted Site URL fixed. The critical path
-is R2 credentials → a real upload → a real render → a real test checkout.
+is the hosted migration → R2 credentials → a real upload → a real render → a real test checkout.
 
 ## Frontend handoff
 
@@ -50,10 +51,12 @@ this repo's backend agent. The contract is [FRONTEND_PROMPT.md](FRONTEND_PROMPT.
 
 ## What to do next
 
-1. Deliver `FRONTEND_PROMPT.md` to the builder and let it run the reference sprint.
-2. Create the R2 bucket/token and fill `apps/worker/.env` plus the R2 values in
+1. Apply `supabase/migrations/20261026120000_backend_hardening.sql` to hosted Supabase and verify
+   seven migrations / 30 functions **before** deploying the hardened checkout route.
+2. Deliver `FRONTEND_PROMPT.md` to the builder and let it run the reference sprint.
+3. Create the R2 bucket/token and fill `apps/worker/.env` plus the R2 values in
    `apps/web/.env.local`.
-3. Add Razorpay **test** keys and plan id.
-4. Set the Supabase Site URL to `http://localhost:3200` and allow
+4. Add Razorpay **test** keys and plan id.
+5. Set the Supabase Site URL to `http://localhost:3200` and allow
    `http://localhost:3200/auth/callback`, then prove Google and magic-link sign-in.
-5. With credentials present, run Track A5/A6 and record the evidence in CLIPMAX.md §8.
+6. With credentials present, run Track A5/A6 and record the evidence in CLIPMAX.md §8.

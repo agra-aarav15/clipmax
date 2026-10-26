@@ -35,7 +35,14 @@ export const PLAN_TIERS = ["free", "starter", "pro"] as const;
 
 export type PlanTier = (typeof PLAN_TIERS)[number];
 
-export const SUBSCRIPTION_STATUSES = ["active", "past_due", "canceled"] as const;
+export const SUBSCRIPTION_STATUSES = [
+  "pending",
+  "active",
+  "past_due",
+  "paused",
+  "canceled",
+  "completed",
+] as const;
 
 export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
 

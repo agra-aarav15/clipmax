@@ -123,15 +123,26 @@ them as the target.
 
 ### 3.2 Implemented and committed (code-complete)
 
-- **Hosted Supabase is live**: project `eerqogsjvoswkqhhnhld` (Tokyo), all six migrations applied,
+- **Hosted Supabase is live**: project `eerqogsjvoswkqhhnhld` (Tokyo), six migrations applied,
   28 public functions, the auth-user trigger, 8 RLS policies, and the six migration versions
   recorded in `supabase_migrations.schema_migrations`. Local web credentials are in
-  `apps/web/.env.local` (ignored by git). R2 and Razorpay credentials are still absent.
+  `apps/web/.env.local` (ignored by git). R2 and Razorpay credentials are still absent. **The
+  seventh migration, `20261026120000_backend_hardening.sql`, is locally verified but not yet
+  applied to the hosted project** (30 functions after it lands). Deploy the matching app code only
+  after applying it.
 - Monorepo (`apps/web`, `apps/worker`, `apps/site`, `packages/shared`, `supabase`, `scripts`), CI,
   Turbo, shared contracts, ESLint/Prettier/TypeScript, Python `uv` + ruff + mypy.
 - Postgres schema with RLS, profiles, projects, jobs, clips, wallets, append-only ledger,
   subscriptions, webhook events, credit reservations, rate limits, monthly renewal, hardening RPCs.
-  Six migrations in `supabase/migrations/`.
+  Seven migrations in `supabase/migrations/`.
+- **Backend audit hardening (26 Oct)**: eleven findings fixed across R2, deletion, the worker, and
+  checkout. R2 presigning no longer sends an empty-body checksum; account deletion blocks active
+  work, paginates storage rows, and sweeps both user prefixes; worker ids are unique per process and
+  `local` is rejected in production; the LLM key must match `LLM_PROVIDER`; terminal failures and
+  lease reaping delete rendered objects and refund once; retry deletes the previous render keys;
+  checkout serializes per user, never clears a remote subscription id before the route has checked
+  its live status, reconciles a paid-but-unwebhooked subscription, and fails closed against the
+  legacy RPC response. `pnpm db:verify` covers the new states.
 - Supabase Auth: Google + email magic link, PKCE callback, session-refresh proxy, honest
   missing-configuration states.
 - Direct-to-R2 presigned upload with real XHR progress, HeadObject verification, credit
@@ -154,22 +165,24 @@ them as the target.
 ### 3.3 Verified locally (evidence in §8)
 
 - **26 Oct 2026 full local suite:** `pnpm typecheck`, `pnpm lint`, the web production build,
-  `pnpm db:verify` (100 executable SQL checks), 26 worker pytest tests, ruff, mypy `--strict`, and
-  the `/clipmax` Pages export all pass.
+  `pnpm db:verify` (119 executable SQL checks across seven migrations), 26 worker pytest tests,
+  ruff, mypy `--strict`, and the `/clipmax` Pages export all pass.
 - Web: typecheck, lint, production build.
-- Worker: 26 pytest tests, ruff, mypy `--strict`, all green on 25 Oct 2026.
+- Worker: 26 pytest tests, ruff, mypy `--strict`, all green on 26 Oct 2026.
 - Media: a synthetic source renders 1080×1920 H.264/AAC with burned ASS captions; ffprobe confirms.
 - Razorpay HMAC: valid and tampered cases.
-- SQL: all six migrations apply to PostgreSQL 18 (PGlite with stubbed Supabase auth) plus 100
+- SQL: all seven migrations apply to PostgreSQL 18 (PGlite with stubbed Supabase auth) plus 119
   executable checks (grant once, renewal, RLS isolation, reserve/settle/refund idempotency, webhook
-  claim/retry, checkout serialization, worker lease reclaim).
+  claim/retry, checkout reuse/stale/clear/reconcile, worker lease reclaim, final-attempt reaping,
+  and terminal clip-path cleanup).
 - Pages: the real landing page, direction board, design lab, and four concepts build statically
   under `/clipmax`, no console errors, no horizontal overflow at 390 and 1440.
 - Hosted Supabase (25 Oct 2026): six migrations applied; 28 functions, 7 triggers (including
   `on_auth_user_created`), and 8 RLS policies exist. Creating a user through the Admin API created
   a `profiles` row, a `credit_wallets` row with 30 credits, and a `grant_signup` ledger entry.
   Anonymous REST requests to `profiles` returned `[]`; the service role saw the row. Both QA users
-  were deleted and the cascade removed their profile, wallet, and ledger rows.
+  were deleted and the cascade removed their profile, wallet, and ledger rows. The seventh
+  migration is pending on the hosted project.
 - `/api/health` against the hosted project returns `supabase: true`, `cron: true`, `r2: false`,
   `billing: false`, status 503. That is the correct configured/incomplete state.
 
@@ -224,7 +237,7 @@ apps/web/          Next.js 16 app: landing, signup, studio, API routes, legal
 apps/worker/       Python worker: pipeline, media, transcribe, highlights, supabase, r2, service
 apps/site/         Static GitHub Pages preview (reuses the real landing page + direction board)
 packages/shared/   Types, credit rules, statuses, API contracts
-supabase/          Six migrations, RLS, SQL functions
+supabase/          Seven migrations, RLS, SQL functions
 scripts/           verify-sql.mjs (PGlite checks), verify.ps1, dev-worker.ps1
 docs/              architecture.md, runbook.md
 .opencode/skills/  Local design/engineering skills (read before using)
@@ -267,12 +280,13 @@ commit either file.** Only `NEXT_PUBLIC_*` reaches the browser; never prefix a s
 `LOG_LEVEL`, optional `SOURCE_COOKIES_FILE`.
 
 **Hosted Supabase (live):** project ref `eerqogsjvoswkqhhnhld`, region `ap-northeast-1`, URL
-`https://eerqogsjvoswkqhhnhld.supabase.co`. Six migrations applied and recorded in
-`supabase_migrations.schema_migrations`. `apps/web/.env.local` holds the project URL, anon key,
-service-role key, and a local `CRON_SECRET`; the file is gitignored. The service-role key is used
-only by server routes. The hosted Site URL must be changed from `http://localhost:3000` to
-`http://localhost:3200`, and `http://localhost:3200/auth/callback` allowlisted, before the browser
-magic-link flow can be tested.
+`https://eerqogsjvoswkqhhnhld.supabase.co`. Six migrations are applied and recorded in
+`supabase_migrations.schema_migrations`; the seventh
+(`20261026120000_backend_hardening.sql`) must be applied before the matching app code is deployed.
+`apps/web/.env.local` holds the project URL, anon key, service-role key, and a local `CRON_SECRET`;
+the file is gitignored. The service-role key is used only by server routes. The hosted Site URL must
+be changed from `http://localhost:3000` to `http://localhost:3200`, and
+`http://localhost:3200/auth/callback` allowlisted, before the browser magic-link flow can be tested.
 
 **Only the founder can do these:** create/own the Supabase project and R2 bucket, complete Razorpay
 KYC, buy and point the domain, and approve Google OAuth branding. The founder's Google account is
@@ -319,16 +333,17 @@ Three tracks run in this order of priority:
 
 ### Track A — prove the product (founder + agent)
 
-**Status 26 Oct:** A1 and A3 are done against hosted Supabase. A2 is partial: Supabase credentials
-exist, R2 does not. A4 is **not** done: the Site URL still points at `localhost:3000`, so the
-browser round trip is unproven. A5 is blocked by R2. A6 is blocked by Razorpay. A7's cron secret is
-set locally. A8 is recorded as evidence lands.
+**Status 26 Oct:** A1 and A3 are done against hosted Supabase (the seventh hardening migration is
+applied locally but still pending on the hosted project). A2 is partial: Supabase credentials exist,
+R2 does not. A4 is **not** done: the Site URL still points at `localhost:3000`, so the browser round
+trip is unproven. A5 is blocked by R2. A6 is blocked by Razorpay. A7's cron secret is set locally.
+A8 is recorded as evidence lands.
 
 | ID  | Task                                | Acceptance                                                                                                        | Owner           |
 | --- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------- |
 | A1  | Create Supabase project + R2 bucket | Project URL, anon key, service role key, bucket, R2 token exist; bucket is private; CORS set for app origins      | Founder         |
 | A2  | Fill env files, never commit        | `apps/web/.env.local` and `apps/worker/.env` present; `/api/health` returns 200 `ready:true`                      | Founder + agent |
-| A3  | Apply six migrations and verify     | `pnpm db:verify` green; `pnpm db:push` applies all six; profile trigger, RLS, and grants exist in hosted DB       | Agent           |
+| A3  | Apply seven migrations and verify   | `pnpm db:verify` green; `pnpm db:push` applies all seven; profile trigger, RLS, and grants exist in hosted DB     | Agent           |
 | A4  | Auth round trip                     | Google sign-in and magic link both land on `/dashboard` with a real profile row; anonymous `/dashboard` redirects | Agent           |
 | A5  | Real upload → real job              | 60–120 s MP4 uploads with progress, project becomes `ready`, worker claims it, clip renders, download plays       | Agent           |
 | A6  | Razorpay test checkout + replay     | One checkout grants 150 credits exactly once; webhook replay is a no-op; signature tamper is rejected             | Agent           |
@@ -429,28 +444,31 @@ python -m uv run --directory apps/worker mypy clipmax_worker
 $env:MSYS_NO_PATHCONV='1'; $env:PAGES_BASE_PATH='/clipmax'; pnpm --filter @clipmax/site build:pages
 ```
 
-| Date      | Claim                                                    | How it was proven                                               |
-| --------- | -------------------------------------------------------- | --------------------------------------------------------------- |
-| 26 Oct 26 | Full local suite green                                   | `pnpm typecheck`, `pnpm lint`, web production build — exit 0    |
-| 26 Oct 26 | 100 SQL checks green                                     | `pnpm db:verify` applied six migrations, 100 checks passed      |
-| 26 Oct 26 | Worker tests, lint, strict types                         | 26 pytest passed; ruff clean; mypy no issues (11 files)         |
-| 26 Oct 26 | Static Pages export green                                | `build:pages` under `/clipmax`, all routes generated            |
-| 25 Oct 26 | Web typecheck, lint, production build                    | `pnpm typecheck`, `pnpm lint`, `next build` — all exit 0        |
-| 25 Oct 26 | Worker tests, lint, strict types                         | 26 pytest passed; ruff clean; mypy no issues (11 files)         |
-| 25 Oct 26 | Static site and direction board export                   | `build:pages` for `/clipmax`, 6 routes, no errors               |
-| 25 Oct 26 | Direction board has no horizontal overflow at 390 / 1440 | Browser measurement: `scrollWidth <= innerWidth`                |
-| 25 Oct 26 | Four lab concepts have no horizontal overflow at 390     | Browser measurement on all four routes                          |
-| 25 Oct 26 | Hosted Supabase schema, triggers, and RLS                | 6 migrations, 28 functions, `on_auth_user_created`, 8 policies  |
-| 25 Oct 26 | Signup grant fires on hosted auth                        | Admin-created user → profile + 30-credit wallet + ledger row    |
-| 25 Oct 26 | RLS hides other tenants from anon                        | Anon REST `profiles` returned `[]`; service role saw the row    |
-| 25 Oct 26 | Web reaches hosted Supabase                              | `/api/health` → `supabase:true`, 503 because R2/billing missing |
-| 24 Oct 26 | Six migrations apply + 100 SQL checks                    | `pnpm db:verify` (PGlite, stubbed auth) — 100 checks passed     |
-| 24 Oct 26 | Synthetic 1080×1920 render with burned captions          | ffmpeg + ffprobe on a generated source                          |
-| 23 Oct 26 | Razorpay HMAC valid/tampered cases                       | Local verification tests                                        |
+| Date      | Claim                                                    | How it was proven                                                    |
+| --------- | -------------------------------------------------------- | -------------------------------------------------------------------- |
+| 26 Oct 26 | Full local suite green                                   | `pnpm typecheck`, `pnpm lint`, web production build — exit 0         |
+| 26 Oct 26 | Backend audit fixes verified                             | 11 findings fixed; suite re-run after the checkout/R2/worker changes |
+| 26 Oct 26 | 119 SQL checks green                                     | `pnpm db:verify` applied seven migrations, 119 checks passed         |
+| 26 Oct 26 | Worker tests, lint, strict types                         | 26 pytest passed; ruff clean; mypy no issues (11 files)              |
+| 26 Oct 26 | Static Pages export green                                | `build:pages` under `/clipmax`, all routes generated                 |
+| 25 Oct 26 | Web typecheck, lint, production build                    | `pnpm typecheck`, `pnpm lint`, `next build` — all exit 0             |
+| 25 Oct 26 | Worker tests, lint, strict types                         | 26 pytest passed; ruff clean; mypy no issues (11 files)              |
+| 25 Oct 26 | Static site and direction board export                   | `build:pages` for `/clipmax`, 6 routes, no errors                    |
+| 25 Oct 26 | Direction board has no horizontal overflow at 390 / 1440 | Browser measurement: `scrollWidth <= innerWidth`                     |
+| 25 Oct 26 | Four lab concepts have no horizontal overflow at 390     | Browser measurement on all four routes                               |
+| 25 Oct 26 | Hosted Supabase schema, triggers, and RLS                | 6 migrations, 28 functions, `on_auth_user_created`, 8 policies       |
+| 25 Oct 26 | Signup grant fires on hosted auth                        | Admin-created user → profile + 30-credit wallet + ledger row         |
+| 25 Oct 26 | RLS hides other tenants from anon                        | Anon REST `profiles` returned `[]`; service role saw the row         |
+| 25 Oct 26 | Web reaches hosted Supabase                              | `/api/health` → `supabase:true`, 503 because R2/billing missing      |
+| 24 Oct 26 | Six migrations apply + 100 SQL checks                    | `pnpm db:verify` (PGlite, stubbed auth) — 100 checks passed          |
+| 24 Oct 26 | Synthetic 1080×1920 render with burned captions          | ffmpeg + ffprobe on a generated source                               |
+| 23 Oct 26 | Razorpay HMAC valid/tampered cases                       | Local verification tests                                             |
 
 **Not proven yet — do not describe as working:** R2 upload/signing, real transcription, a real
 hosted render, Razorpay test checkout/webhook, the browser Google/magic-link round trip, production
-deployment, email delivery, any uptime claim.
+deployment, email delivery, any uptime claim. The seventh hardening migration is not applied to the
+hosted project yet; the checkout route detects the legacy RPC response and fails closed, but the
+hosted worker reaper and terminal cleanup are not live until it is applied.
 
 Add a row here every time a hosted claim becomes true. A claim without a row is a guess.
 
@@ -458,19 +476,20 @@ Add a row here every time a hosted claim becomes true. A claim without a row is 
 
 ## 9. Risks and open decisions
 
-| Topic              | Status / risk                                                                                       | Owner                      |
-| ------------------ | --------------------------------------------------------------------------------------------------- | -------------------------- |
-| Frontend direction | The Rundown is the working default; the coded reference sprint has not run.                         | External builder + Founder |
-| External builder   | Scope, deadline, and quality are not yet proven. The brief is the contract.                         | Founder                    |
-| Credentials        | Supabase done; R2 and Razorpay missing. Biggest launch risk.                                        | Founder                    |
-| Domain + hosting   | Not purchased; Pages cannot host the app.                                                           | Founder                    |
-| Razorpay KYC       | Live payments blocked until business details and KYC are complete.                                  | Founder                    |
-| Sample footage     | No real renders; the new UI must use labelled licensed samples or a real render.                    | Founder + builder          |
-| AI budget          | Whisper/LLM spend unknown; local whisper is the no-key fallback.                                    | Founder                    |
-| Legal review       | Pages exist but are not lawyer-reviewed.                                                            | Founder                    |
-| Parallel agents    | Two agents plus an external builder may touch one checkout. Enforce §10 ownership and `git status`. | All                        |
-| Center crop        | Acceptable for v1; copy must not claim face tracking.                                               | Agent                      |
-| Monitoring         | None. Errors would be invisible in production.                                                      | Agent                      |
+| Topic              | Status / risk                                                                                                                                | Owner                      |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| Frontend direction | The Rundown is the working default; the coded reference sprint has not run.                                                                  | External builder + Founder |
+| External builder   | Scope, deadline, and quality are not yet proven. The brief is the contract.                                                                  | Founder                    |
+| Credentials        | Supabase done; R2 and Razorpay missing. Biggest launch risk.                                                                                 | Founder                    |
+| Domain + hosting   | Not purchased; Pages cannot host the app.                                                                                                    | Founder                    |
+| Razorpay KYC       | Live payments blocked until business details and KYC are complete.                                                                           | Founder                    |
+| Sample footage     | No real renders; the new UI must use labelled licensed samples or a real render.                                                             | Founder + builder          |
+| AI budget          | Whisper/LLM spend unknown; local whisper is the no-key fallback.                                                                             | Founder                    |
+| Legal review       | Pages exist but are not lawyer-reviewed.                                                                                                     | Founder                    |
+| Parallel agents    | Two agents plus an external builder may touch one checkout. Enforce §10 ownership and `git status`.                                          | All                        |
+| Migration order    | The checkout route depends on `20261026120000`; deploying it first returns a closed error, not a charge. Apply the migration before the app. | Agent                      |
+| Center crop        | Acceptable for v1; copy must not claim face tracking.                                                                                        | Agent                      |
+| Monitoring         | None. Errors would be invisible in production.                                                                                               | Agent                      |
 
 ---
 
@@ -512,19 +531,22 @@ Add a row here every time a hosted claim becomes true. A claim without a row is 
 | 26 Oct 26 | Backend code-complete after the full local suite; hosted Supabase proven; R2/Razorpay still blocked.                                                           |
 | 26 Oct 26 | Frontend **rejected**; Track B assigned to an external builder. `FRONTEND_PROMPT.md` is the contract.                                                          |
 | 26 Oct 26 | **The Rundown** recorded as the working frontend direction. Cobalt/ice and the six `/lab` directions retired. The coded reference sprint is the approval gate. |
+| 26 Oct 26 | Backend audit: 11 findings fixed; new migration adds the lease reaper, terminal cleanup, and checkout reconcile/clear RPCs. Apply before deploying the route.  |
 
 ---
 
 ## 12. Immediate next actions (in order)
 
-1. **Deliver** [`FRONTEND_PROMPT.md`](FRONTEND_PROMPT.md) to the external builder. The builder runs
+1. **Apply** `supabase/migrations/20261026120000_backend_hardening.sql` to hosted Supabase and
+   verify seven migrations / 30 functions. Do this before deploying the hardened checkout route.
+2. **Deliver** [`FRONTEND_PROMPT.md`](FRONTEND_PROMPT.md) to the external builder. The builder runs
    the 5–10 direction reference sprint first; the founder reviews the scorecard and picks one. The
    backend agent reviews integration only and does not rebuild the UI.
-2. **Founder:** create a Cloudflare R2 bucket and token, then put the values in `apps/worker/.env`
+3. **Founder:** create a Cloudflare R2 bucket and token, then put the values in `apps/worker/.env`
    and `apps/web/.env.local`; add Razorpay **test** keys when ready. Supabase is done.
-3. **Agent:** set the Supabase Site URL to `http://localhost:3200` and allow
+4. **Agent:** set the Supabase Site URL to `http://localhost:3200` and allow
    `http://localhost:3200/auth/callback`, then prove Google and magic-link sign-in to `/dashboard`.
-4. **Agent:** with R2 present, run A5 (real upload → real render → download); with Razorpay present,
+5. **Agent:** with R2 present, run A5 (real upload → real render → download); with Razorpay present,
    run A6 (checkout, replay, tamper).
-5. **Both:** keep this file current; it is the handoff. A claim without an evidence row in §8 is a
+6. **Both:** keep this file current; it is the handoff. A claim without an evidence row in §8 is a
    guess.

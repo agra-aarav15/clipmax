@@ -448,14 +448,10 @@ const userE = "55555555-5555-4555-8555-555555555555";
 await db.query("insert into auth.users (id, email) values ($1, $2)", [userE, "e@example.com"]);
 
 const checkoutOne = await one("select public.begin_checkout($1, 600) as result", [userE]);
-const checkoutTwo = await one("select public.begin_checkout($1, 600) as result", [userE]);
-const staleAttach = await one(
-  "select public.attach_checkout_subscription($1, $2, 'sub_stale', 'cust_stale') as ok",
-  [userE, checkoutOne.result.attemptId],
-);
+const checkoutInProgress = await one("select public.begin_checkout($1, 600) as result", [userE]);
 const attached = await one(
   "select public.attach_checkout_subscription($1, $2, 'sub_live', 'cust_live') as ok",
-  [userE, checkoutTwo.result.attemptId],
+  [userE, checkoutOne.result.attemptId],
 );
 const checkoutReuse = await one("select public.begin_checkout($1, 600) as result", [userE]);
 const pendingRow = await one(
@@ -469,18 +465,17 @@ check(
   checkoutOne.result,
 );
 check(
-  "a superseding checkout creates a new attempt before attach",
-  checkoutTwo.result.action === "create" &&
-    checkoutTwo.result.attemptId !== checkoutOne.result.attemptId,
-  checkoutTwo.result,
+  "a second checkout while the first is being created reports in_progress",
+  checkoutInProgress.result.action === "in_progress" &&
+    checkoutInProgress.result.attemptId === checkoutOne.result.attemptId,
+  checkoutInProgress.result,
 );
-check("an attach from the superseded attempt is refused", staleAttach.ok === false, staleAttach);
 check("the current attempt attaches the provider subscription", attached.ok === true, attached);
 check(
   "a checkout inside the cooldown reuses the attached subscription",
   checkoutReuse.result.action === "reuse" &&
     checkoutReuse.result.subscriptionId === "sub_live" &&
-    checkoutReuse.result.attemptId === checkoutTwo.result.attemptId,
+    checkoutReuse.result.attemptId === checkoutOne.result.attemptId,
   checkoutReuse.result,
 );
 check(
@@ -489,8 +484,76 @@ check(
   pendingRow,
 );
 
+// A stale pending checkout must be reported, not cleared. The route fetches the remote state first.
+await db.query(
+  "update public.subscriptions set checkout_started_at = now() - interval '20 minutes' where user_id = $1",
+  [userE],
+);
+const staleCheckout = await one("select public.begin_checkout($1, 600) as result", [userE]);
+const stalePendingRow = await one(
+  "select status, provider_subscription_id, checkout_attempt_id from public.subscriptions where user_id = $1",
+  [userE],
+);
+check(
+  "a stale pending checkout returns the remote id instead of clearing it",
+  staleCheckout.result.action === "stale" &&
+    staleCheckout.result.subscriptionId === "sub_live" &&
+    staleCheckout.result.attemptId === checkoutOne.result.attemptId,
+  staleCheckout.result,
+);
+check(
+  "begin_checkout leaves a stale provider id in place",
+  stalePendingRow.status === "pending" &&
+    stalePendingRow.provider_subscription_id === "sub_live" &&
+    stalePendingRow.checkout_attempt_id === checkoutOne.result.attemptId,
+  stalePendingRow,
+);
+
+const clearMismatch = await one(
+  "select public.clear_stale_checkout($1, $2, 'sub_other') as result",
+  [userE, checkoutOne.result.attemptId],
+);
+check(
+  "clearing a stale checkout refuses a mismatched provider id",
+  clearMismatch.result.ok === false && clearMismatch.result.reason === "mismatch",
+  clearMismatch.result,
+);
+
+const clearedStale = await one("select public.clear_stale_checkout($1, $2, 'sub_live') as result", [
+  userE,
+  checkoutOne.result.attemptId,
+]);
+const clearedRow = await one(
+  "select status, provider_subscription_id, checkout_attempt_id from public.subscriptions where user_id = $1",
+  [userE],
+);
+check(
+  "clearing a verified stale checkout returns a fresh attempt",
+  clearedStale.result.ok === true &&
+    clearedStale.result.action === "create" &&
+    clearedStale.result.attemptId !== checkoutOne.result.attemptId,
+  clearedStale.result,
+);
+check(
+  "clearing a stale checkout removes the old provider id",
+  clearedRow.status === "pending" &&
+    clearedRow.provider_subscription_id === null &&
+    clearedRow.checkout_attempt_id === clearedStale.result.attemptId,
+  clearedRow,
+);
+
+const reattached = await one(
+  "select public.attach_checkout_subscription($1, $2, 'sub_live_2', 'cust_live_2') as ok",
+  [userE, clearedStale.result.attemptId],
+);
+check(
+  "the fresh attempt can attach a new provider subscription",
+  reattached.ok === true,
+  reattached,
+);
+
 const pendingCancel = await one(
-  "select public.mark_subscription_cancellation($1, 'sub_live', false) as result",
+  "select public.mark_subscription_cancellation($1, 'sub_live_2', false) as result",
   [userE],
 );
 const afterPendingCancel = await one(
@@ -610,6 +673,69 @@ const releaseAgain = await one("select public.release_checkout_attempt($1, $2) a
 check("a failed checkout attempt can be released", released.ok === true, released);
 check("releasing a failed attempt twice is a no-op", releaseAgain.ok === false, releaseAgain);
 
+// A paid remote subscription with a delayed webhook is reconciled, never cancelled.
+const userG = "77777777-7777-4777-8777-777777777777";
+await db.query("insert into auth.users (id, email) values ($1, $2)", [userG, "g@example.com"]);
+
+const paidCheckout = await one("select public.begin_checkout($1, 600) as result", [userG]);
+await one("select public.attach_checkout_subscription($1, $2, 'sub_paid', 'cust_paid') as ok", [
+  userG,
+  paidCheckout.result.attemptId,
+]);
+await db.query(
+  "update public.subscriptions set checkout_started_at = now() - interval '20 minutes' where user_id = $1",
+  [userG],
+);
+const paidStale = await one("select public.begin_checkout($1, 600) as result", [userG]);
+const confirmMismatch = await one(
+  "select public.confirm_paid_checkout($1, 'sub_other', 'cust_paid', now() + interval '30 days') as result",
+  [userG],
+);
+const confirmPaid = await one(
+  "select public.confirm_paid_checkout($1, 'sub_paid', 'cust_paid', now() + interval '30 days') as result",
+  [userG],
+);
+const paidRow = await one(
+  "select status, provider_subscription_id, checkout_attempt_id, current_period_end from public.subscriptions where user_id = $1",
+  [userG],
+);
+const paidProfile = await one("select plan from public.profiles where id = $1", [userG]);
+const paidManage = await one("select public.begin_checkout($1, 600) as result", [userG]);
+
+check(
+  "a stale paid checkout is reported as stale before reconciliation",
+  paidStale.result.action === "stale" && paidStale.result.subscriptionId === "sub_paid",
+  paidStale.result,
+);
+check(
+  "reconciliation refuses a mismatched provider id",
+  confirmMismatch.result.reconciled === false && confirmMismatch.result.reason === "mismatch",
+  confirmMismatch.result,
+);
+check(
+  "reconciliation records an already-paid checkout as active",
+  confirmPaid.result.reconciled === true && confirmPaid.result.status === "active",
+  confirmPaid.result,
+);
+check(
+  "reconciliation keeps the paid provider id and clears the attempt",
+  paidRow.status === "active" &&
+    paidRow.provider_subscription_id === "sub_paid" &&
+    paidRow.checkout_attempt_id === null &&
+    paidRow.current_period_end !== null,
+  paidRow,
+);
+check(
+  "reconciliation upgrades the profile to starter",
+  paidProfile.plan === "starter",
+  paidProfile,
+);
+check(
+  "a reconciled subscriber is sent to manage instead of a second checkout",
+  paidManage.result.action === "manage" && paidManage.result.status === "active",
+  paidManage.result,
+);
+
 // ---------------------------------------------------------------------------
 // Webhook event claim / complete / fail
 // ---------------------------------------------------------------------------
@@ -698,6 +824,10 @@ await one(
   "select public.create_link_project($1, $2, 'Worker failure', 'https://example.com/w1', 10, 'reserve:worker:1')",
   [userF, workerProject1],
 );
+await db.query(
+  "insert into public.clips (project_id, user_id, title, start_time, end_time, render_status, storage_path, thumbnail_path) values ($1, $2, 'Partial render', 0, 30, 'rendered', 'renders/partial/clip.mp4', 'renders/partial/thumb.jpg')",
+  [workerProject1, userF],
+);
 const claimed1 = await one("select * from public.claim_next_job('worker-a', 300)");
 check(
   "claim_next_job leases the queued job",
@@ -769,6 +899,17 @@ check(
   "the failed reservation returns to the wallet",
   workerWalletAfterFail.balance === 30,
   workerWalletAfterFail.balance,
+);
+const failedClip = await one(
+  "select render_status, storage_path, thumbnail_path from public.clips where project_id = $1",
+  [workerProject1],
+);
+check(
+  "a terminal failure clears rendered clip paths",
+  failedClip.render_status === "failed" &&
+    failedClip.storage_path === null &&
+    failedClip.thumbnail_path === null,
+  failedClip,
 );
 check(
   "a second failure report from the old lease is ignored",
@@ -843,6 +984,86 @@ check(
   "an expired lease is reclaimed by another worker",
   reclaimed.id === claimed4.id && reclaimed.locked_by === "worker-b" && reclaimed.attempts === 2,
   { id: reclaimed.id, locked_by: reclaimed.locked_by, attempts: reclaimed.attempts },
+);
+
+// A job that crashes the worker on every attempt must be failed and refunded, not requeued forever.
+const workerProject5 = "22222222-3333-4444-8555-666666666666";
+await one(
+  "select public.create_link_project($1, $2, 'Final attempt crash', 'https://example.com/w5', 5, 'reserve:worker:5')",
+  [userF, workerProject5],
+);
+await db.query(
+  "insert into public.clips (project_id, user_id, title, start_time, end_time, render_status, storage_path, thumbnail_path) values ($1, $2, 'Rendered before crash', 0, 30, 'rendered', 'renders/crash/clip.mp4', 'renders/crash/thumb.jpg')",
+  [workerProject5, userF],
+);
+
+const claim5a = await one("select * from public.claim_next_job('worker-a', 300)");
+await db.query(
+  "update public.processing_jobs set lease_expires_at = now() - interval '1 minute' where id = $1",
+  [claim5a.id],
+);
+const claim5b = await one("select * from public.claim_next_job('worker-b', 300)");
+await db.query(
+  "update public.processing_jobs set lease_expires_at = now() - interval '1 minute' where id = $1",
+  [claim5b.id],
+);
+const claim5c = await one("select * from public.claim_next_job('worker-c', 300)");
+await db.query(
+  "update public.processing_jobs set lease_expires_at = now() - interval '1 minute' where id = $1",
+  [claim5c.id],
+);
+
+const crashBalanceBefore = await one(
+  "select balance from public.credit_wallets where user_id = $1",
+  [userF],
+);
+const afterReaper = await one("select * from public.claim_next_job('worker-d', 300)");
+const reapedJob = await one(
+  "select status, attempts, max_attempts, locked_by from public.processing_jobs where id = $1",
+  [claim5c.id],
+);
+const reapedProject = await one(
+  "select status, credits_reserved from public.projects where id = $1",
+  [workerProject5],
+);
+const reapedClip = await one(
+  "select render_status, storage_path, thumbnail_path from public.clips where project_id = $1",
+  [workerProject5],
+);
+const crashBalanceAfter = await one(
+  "select balance from public.credit_wallets where user_id = $1",
+  [userF],
+);
+
+check(
+  "a job at max_attempts is not reclaimed after its lease expires",
+  !afterReaper || afterReaper.id !== claim5c.id,
+  afterReaper,
+);
+check(
+  "the final expired attempt is failed with its lease cleared",
+  reapedJob.status === "failed" &&
+    reapedJob.attempts === 3 &&
+    reapedJob.max_attempts === 3 &&
+    reapedJob.locked_by === null,
+  reapedJob,
+);
+check(
+  "the reaper fails the project and releases its reservation",
+  reapedProject.status === "failed" && reapedProject.credits_reserved === 0,
+  reapedProject,
+);
+check(
+  "the reaper clears rendered clip paths before refunding",
+  reapedClip.render_status === "failed" &&
+    reapedClip.storage_path === null &&
+    reapedClip.thumbnail_path === null,
+  reapedClip,
+);
+check(
+  "the final-attempt refund returns to the wallet",
+  crashBalanceAfter.balance === crashBalanceBefore.balance + 5,
+  { before: crashBalanceBefore.balance, after: crashBalanceAfter.balance },
 );
 
 // ---------------------------------------------------------------------------

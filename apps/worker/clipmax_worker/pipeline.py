@@ -189,10 +189,10 @@ def process_job(context: WorkerContext, job: dict[str, Any]) -> None:
         logger.error("stopping job because the lease was lost: %s", exc)
     except PermanentJobError as exc:
         logger.error("permanent job failure: %s", exc)
-        _fail_job(context, job_id, str(exc), permanent=True)
+        _fail_job(context, job, str(exc), permanent=True)
     except Exception as exc:
         logger.exception("transient job failure")
-        _fail_job(context, job_id, str(exc)[:2000], permanent=False)
+        _fail_job(context, job, str(exc)[:2000], permanent=False)
     finally:
         job_id_var.set(None)
         project_id_var.set(None)
@@ -666,11 +666,36 @@ def _finish_render_job(context: WorkerContext, job_id: str) -> bool:
 
 def _fail_job(
     context: WorkerContext,
-    job_id: str,
+    job: dict[str, Any],
     message: str,
     *,
     permanent: bool,
 ) -> None:
+    job_id = str(job["id"])
+    project_id = str(job["project_id"])
+    attempts = int(job.get("attempts") or 0)
+    max_attempts = int(job.get("max_attempts") or 1)
+    terminal = permanent or attempts >= max_attempts
+
+    # A terminal failure refunds the whole project. Delete any clips that already rendered so the
+    # customer cannot keep partial output for free. Best effort: the SQL terminal branch also clears
+    # the paths, and account deletion sweeps the user's prefixes.
+    if terminal:
+        try:
+            clips = context.rest.select("clips", [("project_id", f"eq.{project_id}")])
+            for clip in clips:
+                for field in ("storage_path", "thumbnail_path"):
+                    key = clip.get(field)
+                    if isinstance(key, str) and key:
+                        try:
+                            context.store.delete(key)
+                        except Exception:
+                            logger.warning(
+                                "could not delete failed render object %s", key, exc_info=True
+                            )
+        except Exception:
+            logger.warning("could not list clips for terminal cleanup", exc_info=True)
+
     try:
         failed = context.rest.rpc(
             "fail_job",

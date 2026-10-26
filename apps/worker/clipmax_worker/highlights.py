@@ -53,7 +53,7 @@ def detect_highlights(
     if duration_seconds <= 0:
         return []
 
-    api_key = settings.llm_api_key or settings.openai_api_key or settings.groq_api_key
+    api_key = _api_key_for_provider(settings)
     if api_key:
         try:
             clips = _request_llm_clips(segments, settings, api_key, duration_seconds)
@@ -63,6 +63,19 @@ def detect_highlights(
             logger.warning("highlight LLM failed; using density fallback: %s", exc)
 
     return fallback_highlights(segments, duration_seconds=duration_seconds)
+
+
+def _api_key_for_provider(settings: Settings) -> str | None:
+    """Use the key that belongs to the selected provider.
+
+    Falling back to another provider's key sends the wrong credential to the wrong host and turns a
+    configuration mistake into a silent quality downgrade.
+    """
+    if settings.llm_api_key:
+        return settings.llm_api_key
+    if settings.llm_provider == "groq":
+        return settings.groq_api_key
+    return settings.openai_api_key
 
 
 def _request_llm_clips(
