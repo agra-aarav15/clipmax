@@ -31,7 +31,7 @@ and Razorpay credentials. The preview routes state that boundary instead of show
 | Phase | Scope                                               | State                                                                            |
 | ----- | --------------------------------------------------- | -------------------------------------------------------------------------------- |
 | 1     | Repo scaffolding, shared contracts, navbar and hero | **Complete**                                                                     |
-| 2     | Supabase schema, RLS, credits, job queue            | **Complete and applied** to the hosted project                                   |
+| 2     | Supabase schema, RLS, credits, job queue            | **Complete**; six applied to hosted, seventh hardening migration pending         |
 | 3     | R2 presigned upload API + project lifecycle         | **Code complete** (needs R2 keys)                                                |
 | 4     | Worker pipeline: transcribe → highlights → render   | **Code complete** (needs R2 keys and an AI provider)                             |
 | 5     | Frontend: landing, auth, studio, results, billing   | **Rejected; external rebuild** from [FRONTEND_PROMPT.md](FRONTEND_PROMPT.md)     |
@@ -79,8 +79,9 @@ Verified locally without hosted credentials:
 Still unverified because R2 and Razorpay keys are not configured: a real upload/signing round trip,
 real transcription and a real hosted render, Razorpay test checkout and webhook delivery, and
 deployment. The Supabase half is proven at the API/DB level; the browser magic-link and Google round
-trips still need the hosted Site URL set to `http://localhost:3200`. Follow
-[docs/runbook.md](docs/runbook.md) for the credential-backed pass.
+trips still need the hosted Site URL set to `http://localhost:3200`. The seventh hardening migration
+is pending on the hosted project and must be applied before the matching checkout route is deployed.
+Follow [docs/runbook.md](docs/runbook.md) for the credential-backed pass.
 
 ## Stack
 
