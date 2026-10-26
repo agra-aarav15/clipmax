@@ -451,6 +451,7 @@ $env:MSYS_NO_PATHCONV='1'; $env:PAGES_BASE_PATH='/clipmax'; pnpm --filter @clipm
 | 26 Oct 26 | 119 SQL checks green                                     | `pnpm db:verify` applied seven migrations, 119 checks passed         |
 | 26 Oct 26 | Worker tests, lint, strict types                         | 27 pytest passed; ruff clean; mypy no issues (11 files)              |
 | 26 Oct 26 | Static Pages export green                                | `build:pages` under `/clipmax`, all routes generated                 |
+| 26 Oct 26 | Production build reaches hosted Supabase                 | `/api/health` → `supabase:true`, `cron:true`, `r2:false`, 503        |
 | 25 Oct 26 | Web typecheck, lint, production build                    | `pnpm typecheck`, `pnpm lint`, `next build` — all exit 0             |
 | 25 Oct 26 | Worker tests, lint, strict types                         | 26 pytest passed; ruff clean; mypy no issues (11 files)              |
 | 25 Oct 26 | Static site and direction board export                   | `build:pages` for `/clipmax`, 6 routes, no errors                    |
