@@ -174,14 +174,18 @@ export async function deletePrefixes(prefixes: string[]): Promise<number> {
   let deleted = 0;
 
   for (const prefix of unique) {
-    let continuationToken: string | undefined;
+    // Deleting objects while paginating with a continuation token can skip keys on some
+    // S3-compatible stores. Re-list the first page until it is empty instead. The page cap stops a
+    // concurrent writer from turning the sweep into an unbounded loop.
+    for (let pageCount = 0; ; pageCount += 1) {
+      if (pageCount >= 1000) {
+        throw new Error(`R2 prefix ${prefix} still had objects after 1000 pages.`);
+      }
 
-    do {
       const page = await s3.send(
         new ListObjectsV2Command({
           Bucket: config.bucket,
           Prefix: prefix,
-          ContinuationToken: continuationToken,
         }),
       );
 
@@ -189,12 +193,10 @@ export async function deletePrefixes(prefixes: string[]): Promise<number> {
         .map((object) => object.Key)
         .filter((key): key is string => typeof key === "string" && key.length > 0);
 
-      if (keys.length > 0) {
-        deleted += await deleteObjectKeys(s3, config.bucket, keys);
-      }
+      if (keys.length === 0) break;
 
-      continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
-    } while (continuationToken);
+      deleted += await deleteObjectKeys(s3, config.bucket, keys);
+    }
   }
 
   return deleted;
